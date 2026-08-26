@@ -1,0 +1,102 @@
+.species-select {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 2rem 1rem;
+}
+
+.species-select h2 {
+  font-size: 1.8rem;
+  margin-bottom: 0.5rem;
+}
+
+.species-select .hint {
+  color: #666;
+  margin-bottom: 1.5rem;
+  font-size: 0.95rem;
+}
+
+.species-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1rem;
+  width: 100%;
+  max-width: 800px;
+}
+
+.species-card {
+  cursor: pointer;
+  padding: 1.2rem;
+  text-align: left;
+  transition: all 0.25s ease;
+  border: 2px solid transparent;
+}
+
+.species-card:hover {
+  transform: translateY(-3px);
+  border-color: rgba(0, 0, 0, 0.15);
+}
+
+.species-card .species-header {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.5rem;
+}
+
+.species-card .species-emoji {
+  font-size: 2rem;
+}
+
+.species-card .species-name {
+  font-size: 1.3rem;
+  font-weight: 700;
+}
+
+.species-card .species-diet {
+  display: inline-block;
+  font-size: 0.75rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 99px;
+  font-weight: 600;
+  margin-left: 0.3rem;
+}
+
+.diet-carnivore { background: #fde2e2; color: #c0392b; }
+.diet-herbivore { background: #d5f5e3; color: #27ae60; }
+.diet-omnivore { background: #fef9e7; color: #f39c12; }
+
+.species-card .species-size {
+  font-size: 0.8rem;
+  color: #888;
+  margin-bottom: 0.4rem;
+}
+
+.species-card .species-desc {
+  font-size: 0.85rem;
+  color: #555;
+  margin-bottom: 0.8rem;
+  line-height: 1.5;
+}
+
+.species-stats {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.stat-badge {
+  font-size: 0.75rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 6px;
+  background: #f0f0f0;
+  font-weight: 600;
+  color: #444;
+}
+
+@media (max-width: 480px) {
+  .species-grid {
+    grid-template-columns: 1fr;
+  }
+}
