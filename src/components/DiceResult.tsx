@@ -91,10 +91,12 @@ function ActionResultBlock({
   breakdown,
   isSubAction,
   traitGained,
+  extras,
 }: {
   breakdown: ActionBreakdown;
   isSubAction?: boolean;
   traitGained?: { name: string; description: string; isPositive: boolean } | null;
+  extras?: { name: string; isPositive: boolean }[];
 }) {
   const resultColor = RESULT_COLORS[breakdown.checkResult];
   const resultLabel = breakdown.isCombat && breakdown.combatOutcome
@@ -105,7 +107,9 @@ function ActionResultBlock({
   // Calculate adjusted threshold: dc - statBonus - traitBonus
   // The player's roll needs to exceed this number
   const adjustedThreshold = breakdown.dc - breakdown.statBonus - breakdown.traitBonus
+    - (breakdown.packBonus ?? 0)
     - (breakdown.isCombat && breakdown.combatPackBonus ? breakdown.combatPackBonus : 0);
+  const arena = breakdown.arena;
 
   // Net resource changes (gain - cost)
   const netHunger = breakdown.hungerChange - breakdown.resourceCost.hunger;
@@ -119,8 +123,18 @@ function ActionResultBlock({
         </span>
       </div>
 
+      {/* 3D 戰鬥統計 */}
+      {arena && (
+        <div className="arena-summary">
+          <div><b>{arena.damageDealt}</b><span>造成傷害</span></div>
+          <div><b>{arena.hpLost}</b><span>承受傷害</span></div>
+          <div><b>{arena.maxCombo}</b><span>最高連擊</span></div>
+          <div><b>{arena.perfectDodges}</b><span>完美閃避</span></div>
+        </div>
+      )}
+
       {/* Dice vs Threshold */}
-      <div className="result-dice-vs">
+      {!arena && <div className="result-dice-vs">
         <div className="dice-vs-col">
           <AnimatedDice value={breakdown.roll} colorClass={resultColor} />
           <span className="dice-vs-label">你的骰子</span>
@@ -130,16 +144,15 @@ function ActionResultBlock({
           <span className="dice-vs-threshold">{adjustedThreshold}</span>
           <span className="dice-vs-label">門檻</span>
         </div>
-      </div>
+      </div>}
+      {!arena && (breakdown.packBonus ?? 0) > 0 && (
+        <div className="breakdown-note">🦕 族群協力 +{breakdown.packBonus} 已計入門檻</div>
+      )}
 
       {/* Big success/fail result */}
       <div className={`result-verdict ${isPass ? 'verdict-pass' : 'verdict-fail'}`}>
         {isPass ? '✅' : '❌'} {resultLabel}
       </div>
-
-      {isSubAction && (
-        <div className="breakdown-note">DC+3 分心懲罰已計入門檻</div>
-      )}
 
       {/* Narrative */}
       <div className="breakdown-narrative">{breakdown.narrative}</div>
@@ -156,6 +169,11 @@ function ActionResultBlock({
             詞條：{traitGained.name}
           </span>
         )}
+        {extras?.map(t => (
+          <span key={t.name} className={`net-change-item ${t.isPositive ? 'positive' : 'negative'}`}>
+            詞條：{t.name}
+          </span>
+        ))}
       </div>
     </div>
   );
@@ -227,6 +245,7 @@ export default function DiceResult({ resolution, growthRoll, onContinue }: Props
         <ActionResultBlock
           breakdown={resolution.mainBreakdown}
           traitGained={!resolution.subBreakdown ? resolution.traitGained : null}
+          extras={!resolution.subBreakdown ? resolution.extraTraits : undefined}
         />
       )}
 
@@ -236,7 +255,17 @@ export default function DiceResult({ resolution, growthRoll, onContinue }: Props
           breakdown={resolution.subBreakdown}
           isSubAction
           traitGained={resolution.traitGained}
+          extras={resolution.extraTraits}
         />
+      )}
+
+      {(resolution.mateGained || resolution.mateLost || resolution.traitRemoved || (resolution.knowledgeGain ?? 0) > 0) && (
+        <div className="card life-notes fade-in">
+          {resolution.mateGained && <div>💕 你找到了伴侶！往後資源充足時，族群每年都會壯大。</div>}
+          {resolution.mateLost && <div>💔 你失去了伴侶……（獲得「喪偶之痛」，重新找到伴侶可解除）</div>}
+          {resolution.traitRemoved && <div>✨ 負面詞條已解除！</div>}
+          {(resolution.knowledgeGain ?? 0) > 0 && <div>📖 古生物知識 +{resolution.knowledgeGain}（末日審判時派得上用場）</div>}
+        </div>
       )}
 
       {/* Trait gained/removed - show separately only if not shown in action blocks */}

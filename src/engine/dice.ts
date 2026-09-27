@@ -10,12 +10,13 @@ export function calculateSuccessRate(
   dc: number,
   traits: Trait[],
   primaryStat: StatKey,
-  condition?: string
+  condition?: string,
+  extraBonus = 0
 ): number {
   const traitBonus = getTraitCheckBonus(traits, primaryStat, condition);
-  // Need to roll >= dc on D20. Effective bonus = stat weight + trait bonus
-  // Success = roll + (stat/5) + traitBonus >= dc
-  const effectiveBonus = Math.floor(stat / 5) + traitBonus;
+  // Need to roll >= dc on D20. Effective bonus = stat weight + trait bonus + extra (pack etc.)
+  // Success = roll + (stat/5) + traitBonus + extra >= dc
+  const effectiveBonus = Math.floor(stat / 5) + traitBonus + extraBonus;
   const needed = dc - effectiveBonus;
   // Probability of rolling >= needed on D20
   const successChance = Math.max(5, Math.min(95, ((21 - needed) / 20) * 100));
@@ -28,16 +29,24 @@ export function resolveCheck(
   dc: number,
   traits: Trait[],
   primaryStat: StatKey,
-  condition?: string
+  condition?: string,
+  extraBonus = 0
 ): CheckResult {
   if (roll === 1) return 'critical_failure';
   if (roll === 20) return 'critical_success';
 
   const traitBonus = getTraitCheckBonus(traits, primaryStat, condition);
-  const total = roll + Math.floor(stat / 5) + traitBonus;
+  const total = roll + Math.floor(stat / 5) + traitBonus + extraBonus;
 
   if (total >= dc) return 'success';
   return 'failure';
+}
+
+/** 取得行動判定的情境條件（夜間事件 / 逃跑行動），用於詞條加成 */
+export function getActionCondition(actionTags?: string[], eventTags?: string[]): string | undefined {
+  if (actionTags?.includes('flee')) return 'flee';
+  if (eventTags?.includes('night') || actionTags?.includes('night')) return 'night';
+  return undefined;
 }
 
 export function rollGrowthDice(traits: Trait[]): GrowthRoll {

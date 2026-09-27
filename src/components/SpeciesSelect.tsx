@@ -23,18 +23,20 @@ const STAT_LABELS: Record<string, string> = {
 
 interface Props {
   onSelect: (species: Species) => void;
+  showSecret?: boolean;
 }
 
-export default function SpeciesSelect({ onSelect }: Props) {
+export default function SpeciesSelect({ onSelect, showSecret }: Props) {
+  const list = SPECIES_LIST.filter(sp => !sp.hidden || showSecret);
   return (
     <div className="species-select fade-in">
       <h2>選擇你的物種</h2>
       <p className="hint">每個物種擁有不同的食性、體型與基礎屬性</p>
       <div className="species-grid">
-        {SPECIES_LIST.map((sp) => (
+        {list.map((sp) => (
           <div
             key={sp.id}
-            className="card species-card slide-up"
+            className={`card species-card slide-up ${sp.hidden ? 'secret' : ''}`}
             onClick={() => onSelect(sp)}
           >
             <div className="species-header">
@@ -46,6 +48,7 @@ export default function SpeciesSelect({ onSelect }: Props) {
             </div>
             <div className="species-size">{SIZE_LABELS[sp.bodySize]}</div>
             <div className="species-desc">{sp.description}</div>
+            <div className="species-passive">⚔️ {sp.combatPassive}</div>
             <div className="species-stats">
               {(Object.keys(sp.baseStats) as Array<keyof typeof sp.baseStats>).map((key) => (
                 <span key={key} className="stat-badge">
@@ -53,6 +56,7 @@ export default function SpeciesSelect({ onSelect }: Props) {
                 </span>
               ))}
             </div>
+            <div className="species-fact">📖 {sp.fact}</div>
           </div>
         ))}
       </div>

@@ -11,16 +11,19 @@ export type GamePhase =
   | 'ACTION_SELECT'
   | 'RESOLVE'
   | 'DICE_ROLL'
+  | 'COMBAT'
   | 'STAT_ALLOCATE'
-  | 'ENDGAME_PHASE1'
-  | 'ENDGAME_PHASE2'
-  | 'ENDGAME_PHASE3'
+  | 'ENDGAME'
   | 'RESULT'
   | 'GAME_OVER';
 
 export type StatKey = 'str' | 'agi' | 'int' | 'cha';
 
-export type EndingType = 'total_wipe' | 'lone_survivor' | 'pack_survives';
+export type EndingType = 'total_wipe' | 'lone_survivor' | 'pack_survives' | 'legend';
+
+export type Season = 'normal' | 'bounty' | 'drought' | 'monsoon' | 'cold' | 'omen';
+
+export type EventRarity = 'common' | 'rare' | 'legendary' | 'chain';
 
 export type CombatOutcome = 'great_victory' | 'minor_victory' | 'defeat' | 'catastrophic_defeat';
 
@@ -37,6 +40,13 @@ export interface Species {
   sizeMultiplier: number;
   description: string;
   baseStats: Stats;
+  /** 物種專屬戰鬥被動 */
+  combatPassive: string;
+  /** 古生物小知識 */
+  fact: string;
+  /** 隱藏物種 */
+  hidden?: boolean;
+  startTraits?: string[];
 }
 
 // ========== 屬性 ==========
@@ -80,7 +90,27 @@ export interface GameAction {
   failureResult: ActionResult;
   isCombat?: boolean;
   threatDC?: number;
+  /** 3D 戰鬥敵人 id（見 enemies.ts） */
+  enemy?: string;
+  /** 行動出現條件 */
+  requires?: Requirement;
+  /** 標籤：night / flee / rest / study / group */
+  tags?: string[];
   resourceCost: { hunger: number; hydration: number };
+}
+
+export interface Requirement {
+  minPack?: number;
+  maxPack?: number;
+  mate?: boolean;
+  noMate?: boolean;
+  diets?: DietType[];
+  sizes?: BodySize[];
+  flag?: string;
+  noFlag?: string;
+  trait?: string;
+  minYear?: number;
+  maxYear?: number;
 }
 
 export interface ActionResult {
@@ -92,6 +122,16 @@ export interface ActionResult {
   traitRemove?: string;     // trait id
   packChange?: number;
   mateChance?: boolean;
+  /** 直接獲得伴侶 */
+  mateGain?: boolean;
+  /** 失去伴侶（獲得喪偶之痛） */
+  mateLoss?: boolean;
+  /** 指定獲得的詞條 id（正面或負面） */
+  traitGainId?: string;
+  /** 設定劇情旗標（記錄設定年份） */
+  setFlags?: string[];
+  /** 獲得古生物知識點 */
+  knowledge?: number;
   statChanges?: Partial<Stats>;
 }
 
@@ -99,8 +139,12 @@ export interface ActionResult {
 
 export interface GameEvent {
   id: string;
+  templateId: string;
   narrative: string;
   year: number;
+  rarity: EventRarity;
+  fact?: string;
+  tags?: string[];
   mainActions: GameAction[];
   subActions: GameAction[];
 }
@@ -125,7 +169,26 @@ export interface ActionBreakdown {
   isCombat?: boolean;
   combatOutcome?: CombatOutcome;
   combatPackBonus?: number;
+  packBonus?: number;
+  arena?: ArenaOutcome;
   statChanges?: Partial<Stats>;
+}
+
+// ========== 3D 戰鬥結果 ==========
+
+export type ArenaResultKind = 'victory' | 'defeat' | 'fled' | 'death';
+
+export interface ArenaOutcome {
+  result: ArenaResultKind;
+  hpLost: number;
+  finalHp: number;
+  packLost: number;
+  damageDealt: number;
+  perfectDodges: number;
+  maxCombo: number;
+  interrupts: number;
+  timeSec: number;
+  enemyName: string;
 }
 
 // ========== 年度結算 ==========
@@ -140,6 +203,11 @@ export interface YearResolution {
   traitGained?: Trait;
   traitRemoved?: string;
   packChange: number;
+  mateGained?: boolean;
+  mateLost?: boolean;
+  flagsSet?: string[];
+  knowledgeGain?: number;
+  extraTraits?: Trait[];
   combatOutcome?: CombatOutcome;
   mainBreakdown?: ActionBreakdown;
   subBreakdown?: ActionBreakdown;
@@ -155,19 +223,20 @@ export interface GrowthRoll {
 
 // ========== 末日 ==========
 
-export interface EndgameChoice {
-  id: string;
-  label: string;
-  description: string;
-  successRate: number;
-}
-
-export interface EndgamePhaseResult {
-  phase: 1 | 2 | 3;
+export interface EndgameSummary {
+  ending: EndingType;
+  title: string;
   narrative: string;
-  roll: number;
-  success: boolean;
-  consequence: string;
+  score: number;
+  rank: string;
+  finalHp: number;
+  finalPack: number;
+  log: { title: string; text: string; good: boolean }[];
+  fossil: string;
+  newAchievements: string[];
+  quizCorrect: number;
+  quizTotal: number;
+  bossDefeated: boolean;
 }
 
 // ========== 遊戲狀態 ==========
@@ -195,12 +264,51 @@ export interface GameState {
   yearResolution: YearResolution | null;
   growthRoll: GrowthRoll | null;
 
-  endgameResults: EndgamePhaseResult[];
   ending: EndingType | null;
+  endgame: EndgameSummary | null;
   deathCause: string | null;
+
+  season: Season;
+  flags: Record<string, number>;
+  recentEvents: string[];
+  knowledge: number;
+  mateName: string | null;
+  /** 玩家恐龍的暱稱（生涯報告使用） */
+  dinoName: string;
+  /** 生涯大事記 */
+  chronicle: ChronicleEntry[];
+  runStats: RunStats;
+  /** 上一年年末結算的提示（族群增減、詞條痊癒等） */
+  yearNotes: string[];
 
   bgColor: string;
   log: string[];
+}
+
+export type ChronicleKind = 'normal' | 'combat' | 'love' | 'pack' | 'legend' | 'danger' | 'trait';
+
+export interface ChronicleEntry {
+  year: number;
+  icon: string;
+  text: string;
+  kind: ChronicleKind;
+}
+
+export interface RunStats {
+  enemiesDefeated: string[];
+  damageDealt: number;
+  births: number;
+  packLost: number;
+  matesLost: number;
+  critSuccesses: number;
+  critFailures: number;
+  fightsWon: number;
+  fightsLost: number;
+  perfectDodges: number;
+  bestCombo: number;
+  rareEvents: number;
+  eggsHatched: number;
+  maxPack: number;
 }
 
 // ========== Reducer Actions ==========
@@ -212,13 +320,13 @@ export type GameActionType =
   | { type: 'SELECT_MAIN_ACTION'; action: GameAction }
   | { type: 'SELECT_SUB_ACTION'; action: GameAction | null }
   | { type: 'CONFIRM_ACTIONS' }
+  | { type: 'START_COMBAT' }
+  | { type: 'CANCEL_COMBAT' }
   | { type: 'RESOLVE_ACTIONS'; resolution: YearResolution }
   | { type: 'ROLL_GROWTH'; roll: GrowthRoll }
   | { type: 'ENTER_STAT_ALLOCATE' }
   | { type: 'ALLOCATE_STATS'; allocation: Partial<Stats> }
   | { type: 'ADVANCE_YEAR' }
-  | { type: 'ENTER_ENDGAME' }
-  | { type: 'ENDGAME_RESULT'; result: EndgamePhaseResult }
-  | { type: 'SET_ENDING'; ending: EndingType }
+  | { type: 'SET_ENDING'; summary: EndgameSummary }
   | { type: 'GAME_OVER'; cause: string }
   | { type: 'RESTART' };

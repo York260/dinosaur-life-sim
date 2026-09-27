@@ -158,3 +158,90 @@ button:disabled {
     font-size: 1.8rem;
   }
 }
+
+/* ========== 標題彩蛋與成就 ========== */
+.title-dino {
+  font-size: 4rem;
+  animation: pulse 2.4s infinite;
+}
+
+.achv-btn {
+  margin-top: 0.8rem;
+  background: transparent;
+  color: #555;
+  border: 1px solid #bbb;
+}
+
+.achv-grid {
+  margin-top: 1rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 0.5rem;
+  max-width: 720px;
+  width: 100%;
+  text-align: left;
+}
+
+.achv-item {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  opacity: 0.45;
+  filter: grayscale(1);
+}
+
+.achv-item.got {
+  opacity: 1;
+  filter: none;
+}
+
+.achv-icon {
+  font-size: 1.5rem;
+}
+
+.achv-name {
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+
+.achv-desc {
+  font-size: 0.72rem;
+  color: #777;
+}
+
+.title-hint {
+  margin-top: 1.5rem;
+  font-size: 0.75rem;
+  color: #999;
+}
+
+.toast-layer {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  z-index: 100;
+  pointer-events: none;
+}
+
+.toast {
+  background: rgba(30, 30, 30, 0.92);
+  color: #ffd23a;
+  padding: 0.6rem 1rem;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 0.9rem;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+  animation: toastIn 0.4s cubic-bezier(0.2, 1.6, 0.4, 1), fadeOut 0.5s ease 3.3s forwards;
+}
+
+@keyframes toastIn {
+  from { transform: translateX(120%); }
+  to { transform: translateX(0); }
+}
+
+@keyframes fadeOut {
+  to { opacity: 0; transform: translateY(-10px); }
+}

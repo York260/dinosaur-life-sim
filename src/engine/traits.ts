@@ -73,6 +73,64 @@ export const POSITIVE_TRAITS: Trait[] = [
   },
 ];
 
+/** 只能透過特殊事件獲得的傳說詞條（不會隨機抽到） */
+export const LEGENDARY_TRAITS: Trait[] = [
+  {
+    id: 'legend_hunter',
+    name: '白色傳說',
+    description: '擊敗白化暴君的證明：戰鬥傷害 +20%、戰鬥骰 +3、末日 +3',
+    isPositive: true,
+    effects: [
+      { type: 'combat_bonus', value: 3, condition: 'roll' },
+      { type: 'endgame_bonus', value: 3 },
+    ],
+  },
+  {
+    id: 'amber_wisdom',
+    name: '琥珀之眼',
+    description: '你看過太多封存在時間裡的東西。INT +4',
+    isPositive: true,
+    effects: [{ type: 'stat_bonus', stat: 'int', value: 4 }],
+  },
+];
+
+export function getTraitById(id: string): Trait | undefined {
+  const all = [...POSITIVE_TRAITS, ...NEGATIVE_TRAITS, ...LEGENDARY_TRAITS, WEAKNESS_TRAIT];
+  const t = all.find(tr => tr.id === id);
+  return t ? { ...t, cureProgress: t.cureTarget ? 0 : undefined } : undefined;
+}
+
+export function hasTrait(traits: Trait[], id: string): boolean {
+  return traits.some(t => t.id === id);
+}
+
+/**
+ * 每年結算時推進負面詞條的解除進度。
+ * - 跛足：當年主/副行動含「rest」標籤則 +1，否則歸零
+ * - 飢餓恐懼：年末飽食 > 70 則 +1，否則歸零
+ */
+export function progressTraitCures(
+  traits: Trait[],
+  ctx: { rested: boolean; hunger: number }
+): { traits: Trait[]; cured: string[] } {
+  const cured: string[] = [];
+  const next: Trait[] = [];
+  for (const t of traits) {
+    if (t.id === 'lame' || t.id === 'hunger_fear') {
+      const ok = t.id === 'lame' ? ctx.rested : ctx.hunger > 70;
+      const progress = ok ? (t.cureProgress || 0) + 1 : 0;
+      if (t.cureTarget && progress >= t.cureTarget) {
+        cured.push(t.name);
+        continue;
+      }
+      next.push({ ...t, cureProgress: progress });
+    } else {
+      next.push(t);
+    }
+  }
+  return { traits: next, cured };
+}
+
 export const WEAKNESS_TRAIT: Trait = {
   id: 'weakness',
   name: '虛弱',

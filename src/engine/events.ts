@@ -1,17 +1,13 @@
-import { GameEvent, GameAction, GameState, AgeStage } from './types';
+import { GameEvent, GameAction, GameState } from './types';
 import { getAgeStage } from './species';
+import { EventTemplate, meetsRequirement } from './eventTypes';
+import { EXTRA_EVENTS } from './eventsExtra';
 
 // ========== 事件模板 ==========
 
-interface EventTemplate {
-  narratives: string[];
-  stages: AgeStage[];
-  mainActions: GameAction[];
-  subActions: GameAction[];
-}
-
 const JUVENILE_EVENTS: EventTemplate[] = [
   {
+    id: 'juv_nest',
     narratives: [
       '清晨的森林裡瀰漫著薄霧，你在母親的巢穴附近探險，發現了一片新的覓食區域。',
       '一場暴雨剛過，地面濕滑泥濘，空氣中充滿了泥土和植物的氣息。',
@@ -55,11 +51,13 @@ const JUVENILE_EVENTS: EventTemplate[] = [
       },
       {
         id: 'hide_observe',
+        tags: ['study'],
         label: '躲藏觀察',
         description: '安靜地觀察周圍環境，學習生存之道',
         primaryStat: 'agi',
         dc: 7,
         successResult: {
+          knowledge: 1,
           narrative: '你發現了一條隱蔽的水源路線，收穫滿滿。',
           hpChange: 5, hungerChange: 10, hydrationChange: 25,
           statChanges: { agi: 1 },
@@ -90,6 +88,7 @@ const JUVENILE_EVENTS: EventTemplate[] = [
       },
       {
         id: 'rest',
+        tags: ['rest'],
         label: '休息養傷',
         description: '安靜地休養身體',
         primaryStat: 'int',
@@ -107,6 +106,8 @@ const JUVENILE_EVENTS: EventTemplate[] = [
     ],
   },
   {
+    id: 'juv_pterosaur',
+    fact: '翼龍不是恐龍！牠們是恐龍的近親，也是第一批學會主動飛行的脊椎動物。',
     narratives: [
       '天空中出現了一群翼龍，牠們的影子掠過地面，引起了一陣騷動。',
       '你發現了一個被遺棄的蛋殼堆，空氣中還殘留著某種掠食者的氣味。',
@@ -199,6 +200,9 @@ const JUVENILE_EVENTS: EventTemplate[] = [
     ],
   },
   {
+    id: 'juv_night',
+    tags: ['night'],
+    fact: '竊蛋龍（Oviraptor）的名字意思是「偷蛋賊」，但後來的化石顯示牠其實是在孵自己的蛋——這是古生物學界有名的冤案。',
     narratives: [
       '夜幕低垂，巢穴外傳來窸窣的腳步聲。一隻偷蛋龍正悄悄靠近你們的巢穴。',
       '你從巢穴探出頭，發現遠處的灌木叢中有兩顆閃爍的眼睛正盯著你看。',
@@ -224,6 +228,7 @@ const JUVENILE_EVENTS: EventTemplate[] = [
       },
       {
         id: 'flee_nest',
+        tags: ['flee'],
         label: '棄巢逃跑',
         description: '放棄巢穴，全速逃向安全地帶',
         primaryStat: 'agi',
@@ -240,6 +245,7 @@ const JUVENILE_EVENTS: EventTemplate[] = [
       },
       {
         id: 'hide_still',
+        tags: ['night'],
         label: '躲在巢穴深處不動',
         description: '屏住呼吸，希望掠食者沒有發現你',
         primaryStat: 'int',
@@ -291,6 +297,7 @@ const JUVENILE_EVENTS: EventTemplate[] = [
     ],
   },
   {
+    id: 'juv_flood',
     narratives: [
       '連日大雨讓附近的小溪暴漲成了湍急的河流，擋住了你回巢穴的路。',
       '昨晚的暴風雨沖垮了好幾棵大樹，地形變得面目全非。',
@@ -383,6 +390,8 @@ const JUVENILE_EVENTS: EventTemplate[] = [
     ],
   },
   {
+    id: 'juv_plants',
+    fact: '開花植物（被子植物）在白堊紀迅速擴張，到了白堊紀末期已成為許多地區的優勢植物。',
     narratives: [
       '你在叢林深處發現了一種從未見過的奇異植物，散發著甜膩的氣味。',
       '地面上長滿了色彩斑斕的菌類，有些恐龍正在啃食它們。',
@@ -426,11 +435,13 @@ const JUVENILE_EVENTS: EventTemplate[] = [
       },
       {
         id: 'observe_others_eating',
+        tags: ['study'],
         label: '觀察其他恐龍的進食',
         description: '看看其他恐龍吃什麼，跟著學習',
         primaryStat: 'int',
         dc: 7,
         successResult: {
+          knowledge: 1,
           narrative: '你觀察到年長的恐龍只吃特定顏色的菌類，你跟著吃，味道不錯！',
           hpChange: 0, hungerChange: 18, hydrationChange: 8,
           statChanges: { int: 1 },
@@ -461,6 +472,7 @@ const JUVENILE_EVENTS: EventTemplate[] = [
       },
       {
         id: 'nap_shade',
+        tags: ['rest'],
         label: '在樹蔭下小睡',
         description: '趁涼爽時休息一下',
         primaryStat: 'int',
@@ -481,6 +493,7 @@ const JUVENILE_EVENTS: EventTemplate[] = [
 
 const ADOLESCENT_EVENTS: EventTemplate[] = [
   {
+    id: 'ado_valley',
     narratives: [
       '你已經長大了不少，開始獨自探索更遠的區域。今天，你發現了一片從未見過的河谷。',
       '季節交替，森林中的食物分布正在改變。你需要做出選擇。',
@@ -490,6 +503,7 @@ const ADOLESCENT_EVENTS: EventTemplate[] = [
     mainActions: [
       {
         id: 'hunt_small',
+        enemy: 'small_theropod',
         label: '狩獵小型獵物',
         description: '追捕蜥蜴、小型恐龍或昆蟲群',
         primaryStat: 'str',
@@ -526,6 +540,7 @@ const ADOLESCENT_EVENTS: EventTemplate[] = [
       },
       {
         id: 'defend_territory',
+        enemy: 'rival',
         label: '保衛領地',
         description: '驅趕入侵你領地的其他恐龍',
         primaryStat: 'str',
@@ -582,6 +597,8 @@ const ADOLESCENT_EVENTS: EventTemplate[] = [
     ],
   },
   {
+    id: 'ado_volcano',
+    fact: '白堊紀末期，印度的「德干暗色岩」火山群持續噴發了數十萬年，釋放大量氣體，可能讓生態系統在隕石撞擊前就已承受壓力。',
     narratives: [
       '地面在輕微震動，遠方的火山噴出了灰色的煙柱。空氣中充滿了硫磺的氣味。',
       '乾旱的季節來臨了，河流開始乾涸，所有的恐龍都在尋找水源。',
@@ -642,6 +659,7 @@ const ADOLESCENT_EVENTS: EventTemplate[] = [
     subActions: [
       {
         id: 'rest_heal',
+        tags: ['rest'],
         label: '休息恢復',
         description: '找個陰涼處休養',
         primaryStat: 'int',
@@ -675,6 +693,7 @@ const ADOLESCENT_EVENTS: EventTemplate[] = [
     ],
   },
   {
+    id: 'ado_wildfire',
     narratives: [
       '森林邊緣冒出了滾滾濃煙，一場野火正在蔓延，熱浪讓空氣都在扭曲。',
       '閃電擊中了一棵枯樹，火焰迅速蔓延到了整片灌木叢。',
@@ -684,6 +703,7 @@ const ADOLESCENT_EVENTS: EventTemplate[] = [
     mainActions: [
       {
         id: 'flee_fire',
+        tags: ['flee'],
         label: '全速逃離火場',
         description: '朝逆風方向拔腿狂奔',
         primaryStat: 'agi',
@@ -717,6 +737,7 @@ const ADOLESCENT_EVENTS: EventTemplate[] = [
       },
       {
         id: 'fire_hunt',
+        enemy: 'hadrosaur',
         label: '趁火打劫——捕捉逃竄的獵物',
         description: '火災讓小動物無處躲藏，正是狩獵的好時機',
         primaryStat: 'str',
@@ -770,6 +791,8 @@ const ADOLESCENT_EVENTS: EventTemplate[] = [
     ],
   },
   {
+    id: 'ado_graveyard',
+    fact: '大量恐龍骨骼集中在一起的「骨床」，常是旱災或洪水造成集體死亡後被河流沖積而成。',
     narratives: [
       '你在探索一片荒蕪的岩地時，發現了大量散落的巨大骨骸——這是一處恐龍墓地。',
       '峽谷深處堆滿了泛白的骨頭，空氣中瀰漫著一股古老而陰沉的氣息。',
@@ -794,11 +817,13 @@ const ADOLESCENT_EVENTS: EventTemplate[] = [
       },
       {
         id: 'investigate_graveyard',
+        tags: ['study'],
         label: '調查骨骸的死因',
         description: '觀察骨骸上的痕跡，學習這片區域的危險',
         primaryStat: 'int',
         dc: 11,
         successResult: {
+          knowledge: 1,
           narrative: '你從骨骸的咬痕和分布推斷出附近有巨型掠食者的巢穴，提前避開了危險。',
           hpChange: 0, hungerChange: 5, hydrationChange: 5,
           statChanges: { int: 1 },
@@ -811,6 +836,7 @@ const ADOLESCENT_EVENTS: EventTemplate[] = [
       },
       {
         id: 'ambush_scavengers',
+        enemy: 'raptor',
         label: '伏擊前來食腐的恐龍',
         description: '利用骨骸作為誘餌，埋伏等待獵物上門',
         primaryStat: 'agi',
@@ -864,6 +890,7 @@ const ADOLESCENT_EVENTS: EventTemplate[] = [
     ],
   },
   {
+    id: 'ado_tar',
     narratives: [
       '你行走在一片低窪地帶，突然感覺腳下的地面變得黏稠——你踩進了一個焦油坑！',
       '一股刺鼻的瀝青氣味瀰漫在空氣中，地面上到處是深色的黏稠液體。',
@@ -956,6 +983,7 @@ const ADOLESCENT_EVENTS: EventTemplate[] = [
     ],
   },
   {
+    id: 'ado_geothermal',
     narratives: [
       '你闖入了一片你從未見過的地熱區域，地面冒著蒸氣，空氣溫暖而潮濕。',
       '前方的山坡上有好幾個冒著熱氣的泉眼，地面呈現出奇異的橙黃色。',
@@ -964,6 +992,7 @@ const ADOLESCENT_EVENTS: EventTemplate[] = [
     mainActions: [
       {
         id: 'hot_spring_soak',
+        tags: ['rest'],
         label: '在溫泉中泡澡',
         description: '小心翼翼地進入溫度適中的泉水中',
         primaryStat: 'int',
@@ -996,6 +1025,7 @@ const ADOLESCENT_EVENTS: EventTemplate[] = [
       },
       {
         id: 'claim_warm_spot',
+        enemy: 'ceratops',
         label: '佔據溫暖的棲息地',
         description: '趕走這裡的其他恐龍，獨佔這片溫暖之地',
         primaryStat: 'str',
@@ -1032,6 +1062,7 @@ const ADOLESCENT_EVENTS: EventTemplate[] = [
       },
       {
         id: 'warm_nap',
+        tags: ['rest'],
         label: '在溫暖的地面休息',
         description: '躺在被地熱加溫的岩石上休息',
         primaryStat: 'int',
@@ -1052,6 +1083,7 @@ const ADOLESCENT_EVENTS: EventTemplate[] = [
 
 const ADULT_EVENTS: EventTemplate[] = [
   {
+    id: 'adu_plains',
     narratives: [
       '你已經是一隻成熟的恐龍了。廣袤的平原上，你看到了無盡的可能——或者是無盡的危險。',
       '一場森林大火過後，灰燼中冒出了新芽。生命在毀滅中重新開始。',
@@ -1061,6 +1093,7 @@ const ADULT_EVENTS: EventTemplate[] = [
     mainActions: [
       {
         id: 'hunt_large',
+        enemy: 'hadrosaur',
         label: '挑戰大型獵物',
         description: '嘗試獵捕體型巨大的恐龍',
         primaryStat: 'str',
@@ -1081,14 +1114,16 @@ const ADULT_EVENTS: EventTemplate[] = [
       },
       {
         id: 'seek_mate',
+        requires: { noMate: true },
         label: '尋找伴侶',
         description: '展示自己的魅力，吸引異性',
         primaryStat: 'cha',
         dc: 13,
         successResult: {
+          mateGain: true,
+          traitRemove: 'grief',
           narrative: '你的求偶舞蹈打動了對方！你找到了人生伴侶。',
           hpChange: 0, hungerChange: 0, hydrationChange: 0,
-          mateChance: true,
           statChanges: { cha: 1 },
         },
         failureResult: {
@@ -1151,6 +1186,7 @@ const ADULT_EVENTS: EventTemplate[] = [
     ],
   },
   {
+    id: 'adu_clouds',
     narratives: [
       '天空中飄過不尋常的雲層，空氣中有股不安的味道。你的直覺告訴你，有什麼大事即將發生。',
       '地震頻繁發生，大地似乎在警告著什麼。周圍的恐龍們都顯得焦躁不安。',
@@ -1159,6 +1195,7 @@ const ADULT_EVENTS: EventTemplate[] = [
     mainActions: [
       {
         id: 'raid_rival',
+        enemy: 'rival',
         label: '突襲敵對族群',
         description: '掠奪其他族群的資源',
         primaryStat: 'str',
@@ -1179,6 +1216,7 @@ const ADULT_EVENTS: EventTemplate[] = [
       },
       {
         id: 'build_nest',
+        requires: { mate: true },
         label: '築巢繁育',
         description: '建造安全的巢穴，為下一代做準備',
         primaryStat: 'int',
@@ -1214,6 +1252,7 @@ const ADULT_EVENTS: EventTemplate[] = [
     subActions: [
       {
         id: 'train_pack',
+        requires: { minPack: 1 },
         label: '訓練族群',
         description: '教導族群成員戰鬥與覓食技巧',
         primaryStat: 'cha',
@@ -1247,6 +1286,8 @@ const ADULT_EVENTS: EventTemplate[] = [
     ],
   },
   {
+    id: 'adu_river',
+    condition: s => s.packSize >= 1,
     narratives: [
       '你在河邊飲水時，注意到水面映照出遠方天際一道不尋常的光芒。',
       '一群受傷的恐龍從北方逃來，牠們帶來了令人不安的消息。',
@@ -1255,6 +1296,7 @@ const ADULT_EVENTS: EventTemplate[] = [
     mainActions: [
       {
         id: 'protect_pack',
+        enemy: 'tyrant',
         label: '保護族群',
         description: '守護族群成員不受威脅',
         primaryStat: 'str',
@@ -1275,6 +1317,7 @@ const ADULT_EVENTS: EventTemplate[] = [
       },
       {
         id: 'long_migration',
+        requires: { minPack: 1 },
         label: '長距離遷徙',
         description: '帶領族群進行一次大規模遷徙',
         primaryStat: 'agi',
@@ -1317,6 +1360,7 @@ const ADULT_EVENTS: EventTemplate[] = [
         primaryStat: 'int',
         dc: 12,
         successResult: {
+          setFlags: ['food_cache'],
           narrative: '你成功儲備了一批食物。',
           hpChange: 0, hungerChange: 15, hydrationChange: 0,
         },
@@ -1328,6 +1372,7 @@ const ADULT_EVENTS: EventTemplate[] = [
       },
       {
         id: 'rest_recover',
+        tags: ['rest'],
         label: '休養生息',
         description: '好好休息一段時間',
         primaryStat: 'int',
@@ -1345,6 +1390,7 @@ const ADULT_EVENTS: EventTemplate[] = [
     ],
   },
   {
+    id: 'adu_flood',
     narratives: [
       '連日暴雨導致上游河流潰堤，洪水正朝你的棲地洶湧而來。',
       '你腳下的大地在震動，遠方傳來轟隆隆的水聲——洪水來了！',
@@ -1354,6 +1400,7 @@ const ADULT_EVENTS: EventTemplate[] = [
     mainActions: [
       {
         id: 'lead_pack_uphill',
+        requires: { minPack: 1 },
         label: '帶領族群撤往高地',
         description: '指揮所有成員向高處轉移',
         primaryStat: 'int',
@@ -1393,7 +1440,7 @@ const ADULT_EVENTS: EventTemplate[] = [
         primaryStat: 'str',
         dc: 15,
         successResult: {
-          narrative: '你推動巨大的倒木成功改變了水流方向，棲地得以保全！族群對你更加敬重。',
+          narrative: '你推動巨大的倒木成功改變了水流方向，棲地得以保全！一隻被你救下的年輕恐龍決定追隨你。',
           hpChange: -5, hungerChange: 5, hydrationChange: 25,
           packChange: 1,
           statChanges: { str: 1 },
@@ -1408,6 +1455,7 @@ const ADULT_EVENTS: EventTemplate[] = [
     subActions: [
       {
         id: 'rescue_stranded',
+        requires: { minPack: 1 },
         label: '救援被困的幼龍',
         description: '涉水救回被洪水困住的族群幼龍',
         primaryStat: 'str',
@@ -1441,6 +1489,9 @@ const ADULT_EVENTS: EventTemplate[] = [
     ],
   },
   {
+    id: 'adu_plague',
+    condition: s => s.packSize >= 2,
+    weight: 0.8,
     narratives: [
       '你注意到族群中有幾隻成員開始咳嗽、行動遲緩，一場疫病似乎正在蔓延。',
       '附近水源的水變得混濁，好幾隻恐龍喝了之後都開始嘔吐。',
@@ -1536,6 +1587,7 @@ const ADULT_EVENTS: EventTemplate[] = [
     ],
   },
   {
+    id: 'adu_ash',
     narratives: [
       '大地在持續震動，遠方的火山口冒出了滾滾黑煙，細碎的火山灰開始飄落。',
       '天空被灰色的火山灰遮蔽，陽光變得昏暗。植物上覆蓋了一層灰白色的粉末。',
@@ -1546,15 +1598,16 @@ const ADULT_EVENTS: EventTemplate[] = [
       {
         id: 'shelter_cave',
         label: '尋找洞穴避難',
-        description: '帶領族群找一個能遮蔽火山灰的洞穴',
+        description: '找一個能遮蔽火山灰的洞穴（末日時或許用得上）',
         primaryStat: 'int',
         dc: 13,
         successResult: {
-          narrative: '你找到了一個寬敞的洞穴，族群安全地躲過了火山灰的侵襲。洞穴裡還有地下水源。',
+          setFlags: ['knows_cave'],
+          narrative: '你找到了一個寬敞的深邃洞穴，安全地躲過了火山灰的侵襲。洞穴裡還有地下水源——你牢牢記住了這個地方。',
           hpChange: 5, hungerChange: 5, hydrationChange: 20,
         },
         failureResult: {
-          narrative: '洞穴太小了，擠不下所有成員。一些恐龍被迫在外面承受火山灰的折磨。',
+          narrative: '洞穴又小又淺，你只能半露在外面承受火山灰的折磨。',
           hpChange: -10, hungerChange: -5, hydrationChange: -5,
         },
         resourceCost: { hunger: 8, hydration: 8 },
@@ -1566,11 +1619,11 @@ const ADULT_EVENTS: EventTemplate[] = [
         primaryStat: 'agi',
         dc: 14,
         successResult: {
-          narrative: '你帶領族群穿越了火山灰覆蓋區，找到了一片未受影響的綠洲。',
+          narrative: '你穿越了火山灰覆蓋區，找到了一片未受影響的綠洲。',
           hpChange: -5, hungerChange: 20, hydrationChange: 20,
         },
         failureResult: {
-          narrative: '火山灰讓你們迷失了方向，吸入了太多有害氣體，所有成員都感到虛弱。',
+          narrative: '火山灰讓你迷失了方向，吸入了太多有害氣體，感到頭暈虛弱。',
           hpChange: -20, hungerChange: -15, hydrationChange: -10,
         },
         resourceCost: { hunger: 15, hydration: 12 },
@@ -1628,6 +1681,9 @@ const ADULT_EVENTS: EventTemplate[] = [
     ],
   },
   {
+    id: 'adu_challenge',
+    condition: s => s.packSize >= 3,
+    weight: 0.8,
     narratives: [
       '你的族群中，一隻體型碩大的成員開始公然挑戰你的領導地位，牠露出獠牙低聲咆哮。',
       '最近食物分配的不公引發了族群內部的不滿，幾隻強壯的成員聚在一起竊竊私語。',
@@ -1636,6 +1692,7 @@ const ADULT_EVENTS: EventTemplate[] = [
     mainActions: [
       {
         id: 'accept_challenge',
+        enemy: 'rival',
         label: '正面迎戰挑戰者',
         description: '用實力證明自己的領導地位',
         primaryStat: 'str',
@@ -1735,51 +1792,73 @@ function pickRandom<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
 }
 
+const ALL_EVENTS: EventTemplate[] = [
+  ...JUVENILE_EVENTS,
+  ...ADOLESCENT_EVENTS,
+  ...ADULT_EVENTS,
+  ...EXTRA_EVENTS,
+];
+
+const RARITY_WEIGHT = { common: 1, rare: 0.5, legendary: 0.2, chain: 3 };
+
+function usableActions(t: EventTemplate, state: GameState) {
+  return {
+    main: t.mainActions.filter(a => meetsRequirement(a.requires, state)),
+    sub: t.subActions.filter(a => meetsRequirement(a.requires, state)),
+  };
+}
+
+function templateWeight(t: EventTemplate): number {
+  return t.weight ?? RARITY_WEIGHT[t.rarity ?? 'common'];
+}
+
+export function getEligibleTemplates(state: GameState): EventTemplate[] {
+  const stage = getAgeStage(state.year);
+  return ALL_EVENTS.filter(t =>
+    t.stages.includes(stage) &&
+    (!t.condition || t.condition(state)) &&
+    usableActions(t, state).main.length >= 2
+  );
+}
+
+function adjustForDiet(action: GameAction, state: GameState): GameAction {
+  const a = { ...action };
+  if (!state.species) return a;
+  if (state.species.diet === 'omnivore') a.dc = Math.min(20, a.dc + 1);
+  if (state.species.diet === 'herbivore' && a.primaryStat === 'int') a.dc = Math.max(3, a.dc - 1);
+  if (state.species.diet === 'carnivore' && a.isCombat) {
+    a.dc = Math.max(3, a.dc - 1);
+    if (a.threatDC) a.threatDC = Math.max(3, a.threatDC - 1);
+  }
+  return a;
+}
+
 export function generateEvent(state: GameState): GameEvent {
   const year = state.year;
-  const stage = getAgeStage(year);
+  const eligible = getEligibleTemplates(state);
+  // 避免近期重複
+  const fresh = eligible.filter(t => !state.recentEvents.includes(t.id));
+  const pool = fresh.length > 0 ? fresh : eligible;
 
-  let pool: EventTemplate[];
-  switch (stage) {
-    case 'juvenile':
-      pool = JUVENILE_EVENTS;
-      break;
-    case 'adolescent':
-      pool = ADOLESCENT_EVENTS;
-      break;
-    case 'adult':
-      pool = ADULT_EVENTS;
-      break;
+  const total = pool.reduce((sum, t) => sum + templateWeight(t), 0);
+  let r = Math.random() * total;
+  let template = pool[0];
+  for (const t of pool) {
+    r -= templateWeight(t);
+    if (r <= 0) { template = t; break; }
   }
 
-  const template = pickRandom(pool);
-  const narrative = pickRandom(template.narratives);
-
-  // Adjust DCs based on diet for certain actions
-  const adjustedMainActions = template.mainActions.map(a => {
-    const action = { ...a };
-    if (state.species) {
-      // Omnivore DC penalty
-      if (state.species.diet === 'omnivore') {
-        action.dc = Math.min(20, action.dc + 1);
-      }
-      // Herbivore bonus on foraging
-      if (state.species.diet === 'herbivore' && action.primaryStat === 'int') {
-        action.dc = Math.max(3, action.dc - 1);
-      }
-      // Carnivore bonus on hunting/combat
-      if (state.species.diet === 'carnivore' && action.isCombat) {
-        action.dc = Math.max(3, action.dc - 1);
-      }
-    }
-    return action;
-  });
+  const { main, sub } = usableActions(template, state);
 
   return {
     id: `event_y${year}_${Date.now()}`,
-    narrative,
+    templateId: template.id,
+    narrative: pickRandom(template.narratives),
     year,
-    mainActions: adjustedMainActions,
-    subActions: template.subActions.map(a => ({ ...a })),
+    rarity: template.rarity ?? 'common',
+    fact: template.fact,
+    tags: template.tags,
+    mainActions: main.map(a => adjustForDiet(a, state)),
+    subActions: sub.map(a => ({ ...a })),
   };
 }
