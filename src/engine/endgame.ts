@@ -222,7 +222,7 @@ export function trial1Options(state: GameState, run: EndgameRun): TrialOption[] 
     },
     {
       id: 'dig', icon: '💪', label: '就地拚命挖洞', kind: 'check',
-      desc: `力量判定${run.pack > 0 ? `（族群幫忙挖 +${Math.min(4, run.pack)}）` : ''}。成功可躲入地下。`,
+      desc: `力量判定（族群幫忙挖 +${Math.min(4, run.pack)}）。成功可躲入地下。`,
       rate: rateFor(strB, 15),
     },
     {
