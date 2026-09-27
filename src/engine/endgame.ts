@@ -736,5 +736,8 @@ export function computeEnding(state: GameState, run: EndgameRun): Omit<EndgameSu
     finalPack: run.pack,
     log: run.log,
     fossil: fossilEpilogue(state, ending),
+    quizCorrect: run.quizCorrect,
+    quizTotal: run.quizTotal,
+    bossDefeated: run.bossDefeated,
   };
 }

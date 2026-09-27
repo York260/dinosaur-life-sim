@@ -1111,3 +1111,7 @@
   padding: 0.5rem 0.8rem;
   border-radius: 8px;
 }
+
+.game-over-screen .report-btn {
+  margin-bottom: 0.8rem;
+}

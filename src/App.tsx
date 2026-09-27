@@ -13,6 +13,9 @@ import {
   isSecretUnlocked, setSecretUnlocked,
 } from './engine/achievements';
 import { getRandomBgColor } from './theme/colors';
+import { randomDinoName, randomMateName } from './engine/names';
+import { ENEMIES } from './engine/enemies';
+import { ChronicleEntry, GameEvent, YearResolution } from './engine/types';
 import SpeciesSelect from './components/SpeciesSelect';
 import GameBoard from './components/GameBoard';
 import EndGame from './components/EndGame';
@@ -46,11 +49,86 @@ const INITIAL_STATE: GameState = {
   recentEvents: [],
   knowledge: 0,
   mateName: null,
-  runStats: { fightsWon: 0, fightsLost: 0, perfectDodges: 0, bestCombo: 0, rareEvents: 0, eggsHatched: 0, maxPack: 0 },
+  dinoName: '',
+  chronicle: [],
+  runStats: {
+    enemiesDefeated: [], damageDealt: 0, births: 0, packLost: 0, matesLost: 0, critSuccesses: 0, critFailures: 0,
+    fightsWon: 0, fightsLost: 0, perfectDodges: 0, bestCombo: 0, rareEvents: 0, eggsHatched: 0, maxPack: 0,
+  },
   yearNotes: [],
   bgColor: 'hsl(0, 0%, 92%)',
   log: [],
 };
+
+// ========== 生涯大事記 ==========
+
+const FLAG_NOTES: Record<string, { icon: string; text: string; kind: ChronicleEntry['kind'] }> = {
+  adopted_egg: { icon: '🥚', text: '收養了一顆被遺棄的蛋', kind: 'love' },
+  egg_hatched: { icon: '🐣', text: '守護多年的蛋終於孵化了', kind: 'love' },
+  ptero_friend: { icon: '🪽', text: '養大的小翼龍振翅飛向天空', kind: 'love' },
+  spared_mammal: { icon: '🐭', text: '放走了一隻偷食物的小毛球', kind: 'love' },
+  sibling_bond: { icon: '🤲', text: '把食物讓給了最瘦小的手足', kind: 'love' },
+  sibling_joined: { icon: '🫂', text: '與失散的手足重逢', kind: 'love' },
+  ally_rival: { icon: '🤝', text: '與流浪戰士結下情誼', kind: 'love' },
+  rival_beaten: { icon: '🥊', text: '在決鬥中擊敗了流浪戰士', kind: 'combat' },
+  albino_beaten: { icon: '🌟', text: '擊敗了傳說中的白化暴君', kind: 'legend' },
+  knows_cave: { icon: '🕳️', text: '找到了一處深邃的洞穴', kind: 'normal' },
+  food_cache: { icon: '🍖', text: '埋藏了過冬的存糧', kind: 'normal' },
+  near_lake: { icon: '🌊', text: '把棲地遷到了深湖旁', kind: 'normal' },
+  pack_drilled: { icon: '📯', text: '訓練族群緊急撤離', kind: 'pack' },
+  omen_seen: { icon: '🌠', text: '察覺到天上那顆越來越亮的星', kind: 'legend' },
+  buried_amber: { icon: '💎', text: '親手埋下了一塊琥珀', kind: 'normal' },
+};
+
+const RESULT_WORD: Record<string, string> = {
+  critical_success: '大成功', success: '成功', failure: '失敗', critical_failure: '大失敗',
+};
+
+function eventHint(ev: GameEvent | null): string {
+  if (!ev) return '';
+  const first = ev.narrative.split(/[，。！？…]/)[0] ?? '';
+  return first.length > 22 ? `${first.slice(0, 22)}…` : first;
+}
+
+function buildChronicle(state: GameState, res: YearResolution, mateName: string | null): ChronicleEntry[] {
+  const y = state.year;
+  const out: ChronicleEntry[] = [];
+  const main = state.selectedMainAction;
+  const ev = state.currentEvent;
+  const arena = res.mainBreakdown?.arena;
+  const rarityIcon = ev?.rarity === 'legendary' ? '🌟' : ev?.rarity === 'rare' ? '✨' : ev?.rarity === 'chain' ? '🔗' : '📍';
+
+  if (main?.isCombat) {
+    const foe = arena?.enemyName ?? ENEMIES[main.enemy ?? 'rival']?.name ?? '敵人';
+    const won = res.combatOutcome === 'great_victory' || res.combatOutcome === 'minor_victory';
+    const how = arena
+      ? arena.result === 'victory' ? `勝利${arena.perfectDodges >= 2 ? `（完美閃避 ${arena.perfectDodges} 次）` : ''}` : arena.result === 'fled' ? '撤退' : '敗北'
+      : won ? '勝利' : '敗北';
+    out.push({ year: y, icon: '⚔️', text: `與${foe}交戰：${how}`, kind: won ? 'combat' : 'danger' });
+  } else if (main) {
+    out.push({
+      year: y,
+      icon: rarityIcon,
+      text: `${eventHint(ev)} → ${main.label}（${RESULT_WORD[res.checkResult]}）`,
+      kind: ev?.rarity === 'legendary' ? 'legend' : 'normal',
+    });
+  }
+  if (res.mateGained) out.push({ year: y, icon: '💕', text: `與「${mateName}」結為伴侶`, kind: 'love' });
+  if (res.mateLost) out.push({ year: y, icon: '💔', text: `失去了伴侶「${state.mateName ?? '牠'}」`, kind: 'danger' });
+  if (res.packChange > 0) out.push({ year: y, icon: '🦕', text: `族群增加了 ${res.packChange} 名成員`, kind: 'pack' });
+  if (res.packChange < 0) out.push({ year: y, icon: '🕯️', text: `失去了 ${-res.packChange} 名族人`, kind: 'danger' });
+  for (const t of [res.traitGained, ...(res.extraTraits ?? [])]) {
+    if (t) out.push({ year: y, icon: t.isPositive ? '✨' : '🩸', text: `${t.isPositive ? '獲得' : '留下了'}「${t.name}」`, kind: t.isPositive ? 'trait' : 'danger' });
+  }
+  for (const f of res.flagsSet ?? []) {
+    const n = FLAG_NOTES[f];
+    if (n && !state.flags[f]) out.push({ year: y, ...n });
+  }
+  if (state.hp + res.hpChange > 0 && state.hp + res.hpChange < 15) {
+    out.push({ year: y, icon: '🩹', text: '身受重傷，在死亡邊緣撐了下來', kind: 'danger' });
+  }
+  return out;
+}
 
 // ========== Reducer ==========
 
@@ -69,6 +147,8 @@ function gameReducer(state: GameState, action: GameActionType): GameState {
         stats: { ...sp.baseStats },
         traits,
         season: rollSeason(1, INITIAL_STATE.maxYear),
+        dinoName: randomDinoName(),
+        chronicle: [{ year: 1, icon: '🥚', text: `一隻${sp.name}在白堊紀末的森林裡破殼而出`, kind: 'normal' }],
         bgColor: getRandomBgColor(sp.id),
         yearNotes: sp.id === 'chicken' ? ['🐔 你睜開眼睛，發現自己在 6600 萬年前的森林裡。咕？'] : [],
       };
@@ -124,13 +204,30 @@ function gameReducer(state: GameState, action: GameActionType): GameState {
 
       const packSize = Math.max(0, state.packSize + res.packChange);
       const arena = res.mainBreakdown?.arena;
-      const runStats = { ...state.runStats, maxPack: Math.max(state.runStats.maxPack, packSize) };
+      const runStats = {
+        ...state.runStats,
+        maxPack: Math.max(state.runStats.maxPack, packSize),
+        enemiesDefeated: [...state.runStats.enemiesDefeated],
+      };
       if (arena) {
         if (arena.result === 'victory') runStats.fightsWon++;
         else runStats.fightsLost++;
         runStats.perfectDodges += arena.perfectDodges;
         runStats.bestCombo = Math.max(runStats.bestCombo, arena.maxCombo);
+        runStats.damageDealt += arena.damageDealt;
+      } else if (res.combatOutcome) {
+        if (res.combatOutcome === 'great_victory' || res.combatOutcome === 'minor_victory') runStats.fightsWon++;
+        else runStats.fightsLost++;
       }
+      if (res.combatOutcome === 'great_victory' || res.combatOutcome === 'minor_victory') {
+        const foe = arena?.enemyName ?? ENEMIES[state.selectedMainAction?.enemy ?? 'rival']?.name;
+        if (foe) runStats.enemiesDefeated.push(foe);
+      }
+      if (res.packChange < 0) runStats.packLost += -res.packChange;
+      if (res.mateLost) runStats.matesLost++;
+      if (res.checkResult === 'critical_success') runStats.critSuccesses++;
+      if (res.checkResult === 'critical_failure') runStats.critFailures++;
+      const mateName = res.mateGained ? randomMateName() : state.mateName;
 
       return {
         ...state,
@@ -146,6 +243,8 @@ function gameReducer(state: GameState, action: GameActionType): GameState {
         flags,
         knowledge: state.knowledge + (res.knowledgeGain ?? 0),
         runStats,
+        mateName,
+        chronicle: [...state.chronicle, ...buildChronicle(state, res, mateName)],
       };
     }
 
@@ -216,7 +315,16 @@ function gameReducer(state: GameState, action: GameActionType): GameState {
         notes.push(`😢 ${desert.narrative}`);
       }
 
-      const runStats = { ...state.runStats, maxPack: Math.max(state.runStats.maxPack, packSize) };
+      const runStats = {
+        ...state.runStats,
+        maxPack: Math.max(state.runStats.maxPack, packSize),
+        births: state.runStats.births + growth.grew,
+        packLost: state.runStats.packLost + desert.lost,
+      };
+      const chronicle = [...state.chronicle];
+      if (growth.grew > 0) chronicle.push({ year: state.year, icon: '🐣', text: `巢中孵出了 ${growth.grew} 隻幼崽`, kind: 'pack' });
+      if (desert.lost > 0) chronicle.push({ year: state.year, icon: '🍂', text: '飢荒中，一名族人離開了', kind: 'danger' });
+      for (const name of cure.cured) chronicle.push({ year: state.year, icon: '🌿', text: `擺脫了「${name}」`, kind: 'trait' });
 
       if (newHp <= 0) {
         return {
@@ -227,6 +335,8 @@ function gameReducer(state: GameState, action: GameActionType): GameState {
           hydration: newHydration,
           year: newYear,
           traits,
+          runStats,
+          chronicle,
           deathCause: '你的恐龍因為傷重、飢餓或脫水而死亡了。',
         };
       }
@@ -248,6 +358,7 @@ function gameReducer(state: GameState, action: GameActionType): GameState {
         traits,
         season,
         runStats,
+        chronicle,
         yearNotes: notes,
         bgColor: newBg,
         currentEvent: null,

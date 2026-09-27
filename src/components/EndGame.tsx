@@ -12,6 +12,7 @@ import { rollD20 } from '../engine/dice';
 import './EndGame.css';
 
 const CombatArena = lazy(() => import('./CombatArena'));
+const LifeReport = lazy(() => import('./LifeReport'));
 
 type Step = 'intro' | 'choose' | 'quiz' | 'boss' | 'result';
 
@@ -52,6 +53,7 @@ export default function EndGame({ state, onEnding, onRestart, onArenaAchievement
   const [answer, setAnswer] = useState<number | null>(null);
   const [result, setResult] = useState<StepResult | null>(null);
   const [hint, setHint] = useState<string | null>(null);
+  const [showReport, setShowReport] = useState(false);
 
   const isChicken = state.species?.id === 'chicken';
 
@@ -195,6 +197,7 @@ export default function EndGame({ state, onEnding, onRestart, onArenaAchievement
         <div className="eg-final-emoji">{emoji}</div>
         <div className={`eg-rank rank-${s.rank}`}>{s.rank}</div>
         <h2>{s.title}</h2>
+        <button className="report-btn" onClick={() => setShowReport(true)}>📜 生成生涯報告</button>
         <div className="eg-card eg-narrative">{s.narrative}</div>
         <div className="eg-final-stats">
           <div><b>{state.year - 1}</b><span>存活年數</span></div>
@@ -221,7 +224,13 @@ export default function EndGame({ state, onEnding, onRestart, onArenaAchievement
             })}
           </div>
         )}
+        <button className="report-btn" onClick={() => setShowReport(true)}>📜 生成生涯報告</button>
         <button className="eg-btn" onClick={onRestart}>再來一局</button>
+        {showReport && (
+          <Suspense fallback={null}>
+            <LifeReport state={state} onClose={() => setShowReport(false)} />
+          </Suspense>
+        )}
       </div>
     );
   }

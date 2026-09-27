@@ -234,6 +234,9 @@ export interface EndgameSummary {
   log: { title: string; text: string; good: boolean }[];
   fossil: string;
   newAchievements: string[];
+  quizCorrect: number;
+  quizTotal: number;
+  bossDefeated: boolean;
 }
 
 // ========== 遊戲狀態 ==========
@@ -270,6 +273,10 @@ export interface GameState {
   recentEvents: string[];
   knowledge: number;
   mateName: string | null;
+  /** 玩家恐龍的暱稱（生涯報告使用） */
+  dinoName: string;
+  /** 生涯大事記 */
+  chronicle: ChronicleEntry[];
   runStats: RunStats;
   /** 上一年年末結算的提示（族群增減、詞條痊癒等） */
   yearNotes: string[];
@@ -278,7 +285,23 @@ export interface GameState {
   log: string[];
 }
 
+export type ChronicleKind = 'normal' | 'combat' | 'love' | 'pack' | 'legend' | 'danger' | 'trait';
+
+export interface ChronicleEntry {
+  year: number;
+  icon: string;
+  text: string;
+  kind: ChronicleKind;
+}
+
 export interface RunStats {
+  enemiesDefeated: string[];
+  damageDealt: number;
+  births: number;
+  packLost: number;
+  matesLost: number;
+  critSuccesses: number;
+  critFailures: number;
   fightsWon: number;
   fightsLost: number;
   perfectDodges: number;
