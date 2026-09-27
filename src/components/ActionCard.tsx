@@ -75,7 +75,6 @@ export default function ActionCard({
         <div className="action-desc">{action.description}</div>
         <div className="action-stat">
           {STAT_LABELS[action.primaryStat]} 判定 | 難度 {dc}
-          {dcPenalty > 0 && <span style={{ color: '#e74c3c' }}> (+{dcPenalty} 副行動懲罰)</span>}
           <span className={`cost-tag ${costLevel.className}`}>{costLevel.label}</span>
         </div>
       </div>

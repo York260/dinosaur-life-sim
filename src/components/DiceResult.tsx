@@ -154,10 +154,6 @@ function ActionResultBlock({
         {isPass ? '✅' : '❌'} {resultLabel}
       </div>
 
-      {isSubAction && (
-        <div className="breakdown-note">DC+3 分心懲罰已計入門檻</div>
-      )}
-
       {/* Narrative */}
       <div className="breakdown-narrative">{breakdown.narrative}</div>
 

@@ -46,7 +46,7 @@ export default function ActionPanel({
       </div>
 
       <div>
-        <div className="action-section-title">副行動（可選 0~1，難度+3）</div>
+        <div className="action-section-title">副行動（可選 0~1）</div>
         <div className="action-cards">
           {subActions.map((a) => (
             <ActionCard
