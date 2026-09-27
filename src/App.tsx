@@ -6,7 +6,7 @@ import { generateEvent } from './engine/events';
 import { applyConsumption, clampResource } from './engine/resources';
 import { getTraitById, progressTraitCures, WEAKNESS_TRAIT } from './engine/traits';
 import { tryPackGrowth, checkPackDesertion } from './engine/pack';
-import { rollSeason, SEASONS } from './engine/seasons';
+import { rollSeason } from './engine/seasons';
 import { resolveYear } from './engine/resolve';
 import {
   ACHIEVEMENTS, arenaAchievements, unlock, lifeAchievements, loadAchievements,
@@ -342,10 +342,6 @@ function gameReducer(state: GameState, action: GameActionType): GameState {
       }
 
       const season = rollSeason(newYear, state.maxYear);
-      if (newYear <= state.maxYear) {
-        const si = SEASONS[season];
-        notes.unshift(`${si.emoji} 今年是「${si.name}」：${si.desc}`);
-      }
       newHp = clampResource(newHp);
 
       const common = {

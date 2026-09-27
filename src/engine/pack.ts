@@ -20,21 +20,6 @@ export function getPackUpkeep(packSize: number): number {
   return Math.min(6, Math.floor(packSize / 2));
 }
 
-/** 族群成員的顯示 */
-export function describePackBonuses(state: GameState): string[] {
-  const p = state.packSize;
-  if (p <= 0) {
-    return ['尚無族群：找到伴侶、收養蛋、救助流浪者都能建立族群'];
-  }
-  const out = [
-    `族群協力：主行動判定 +${getPackCheckBonus(p)}`,
-    `戰鬥召喚：族群突擊 ${getPackCalls(p, state.traits, state.species?.id)} 次`,
-    `族群負擔：每年飽食消耗 +${getPackUpkeep(p)}`,
-  ];
-  if (p >= 1) out.push('致命危機：族群成員可能挺身代死');
-  return out;
-}
-
 export function tryPackGrowth(state: GameState): {
   grew: number;
   narrative: string;

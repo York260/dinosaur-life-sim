@@ -12,6 +12,8 @@ interface Props {
   onAutoResolve?: () => void;
   /** 戰前返回（僅在簡報畫面可用） */
   onCancel?: () => void;
+  /** 事件卡片已顯示過小知識時，簡報不再重複 */
+  hideFact?: boolean;
 }
 
 const KEYMAP: Record<string, ArenaInput> = {
@@ -42,7 +44,7 @@ function Bar({ value, max, cls, label }: { value: number; max: number; cls: stri
   );
 }
 
-export default function CombatArena({ config, title, speciesPassive, onFinish, onAutoResolve, onCancel }: Props) {
+export default function CombatArena({ config, title, speciesPassive, onFinish, onAutoResolve, onCancel, hideFact }: Props) {
   const [stage, setStage] = useState<'brief' | 'fight' | 'result'>('brief');
   const [hud, setHud] = useState<ArenaHud | null>(null);
   const [fx, setFx] = useState<{ kind: ArenaFx; id: number } | null>(null);
@@ -140,13 +142,13 @@ export default function CombatArena({ config, title, speciesPassive, onFinish, o
             <span>💥 {enemy.damage}/擊</span>
           </div>
         </div>
-        {enemy.fact && <div className="arena-fact">📖 {enemy.fact}</div>}
+        {enemy.fact && !hideFact && <div className="arena-fact">📖 {enemy.fact}</div>}
 
         <div className="arena-controls">
           <div><kbd>←</kbd><kbd>→</kbd> / <kbd>A</kbd><kbd>D</kbd><span>左右閃避（有無敵時間）</span></div>
           <div><kbd>Space</kbd> / <kbd>J</kbd><span>撕咬（可連擊）</span></div>
           <div><kbd>↑</kbd> / <kbd>W</kbd><span>向前衝撞（蓄力中命中可「打斷」）</span></div>
-          <div><kbd>Q</kbd><span>族群突擊 ×{config.packCalls}</span></div>
+          {config.packCalls > 0 && <div><kbd>Q</kbd><span>族群突擊 ×{config.packCalls}</span></div>}
           <div><kbd>E</kbd><span>咆哮震懾（依物種/詞條/魅力）</span></div>
           <div><kbd>↓</kbd> / <kbd>S</kbd> 長按<span>撤退</span></div>
         </div>

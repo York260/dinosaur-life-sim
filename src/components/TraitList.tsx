@@ -6,11 +6,7 @@ interface Props {
 
 export default function TraitList({ traits }: Props) {
   if (traits.length === 0) {
-    return (
-      <div style={{ fontSize: '0.8rem', color: '#aaa' }}>
-        尚無詞條
-      </div>
-    );
+    return null;
   }
 
   return (

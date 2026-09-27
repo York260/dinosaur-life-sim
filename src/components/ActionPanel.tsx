@@ -61,11 +61,6 @@ export default function ActionPanel({
               onClick={() => onSelectSub(selectedSub?.id === a.id ? null : a)}
             />
           ))}
-          {selectedSub && (
-            <button className="skip-sub-btn" onClick={() => onSelectSub(null)}>
-              取消副行動
-            </button>
-          )}
         </div>
       </div>
 

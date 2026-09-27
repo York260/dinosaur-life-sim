@@ -8,7 +8,7 @@ import ActionPanel from './ActionPanel';
 import DiceResult from './DiceResult';
 import StatAllocation from './StatAllocation';
 import { SEASONS } from '../engine/seasons';
-import { describePackBonuses, getPackCheckBonus } from '../engine/pack';
+import { getPackCheckBonus, getPackCalls, getPackUpkeep } from '../engine/pack';
 import { buildArenaConfig, envForAction } from '../combat/config';
 import './GameBoard.css';
 
@@ -60,7 +60,7 @@ export default function GameBoard({
             </div>
             <div className="header-right">
               <div className="countdown">末日倒數：{maxYear - year} 年</div>
-              <div className="season-badge" title={season.desc}>{season.emoji} {season.name}</div>
+              <div className="season-badge" title={season.desc}>{season.emoji} {season.name}{season.short && `・${season.short}`}</div>
             </div>
           </div>
 
@@ -86,12 +86,16 @@ export default function GameBoard({
                 {packSize > packIcons && <span className="pack-more">+{packSize - packIcons}</span>}
               </div>
             )}
-            <ul className="pack-bonus">
-              {describePackBonuses(state).map(b => <li key={b}>{b}</li>)}
-            </ul>
-            <div style={{ marginTop: '0.5rem' }}>
-              <TraitList traits={traits} />
-            </div>
+            {packSize > 0 && (
+              <div className="pack-bonus">
+                判定 +{getPackCheckBonus(packSize)}｜戰鬥突擊 ×{getPackCalls(packSize, traits, species.id)}｜飽食負擔 +{getPackUpkeep(packSize)}
+              </div>
+            )}
+            {traits.length > 0 && (
+              <div style={{ marginTop: '0.5rem' }}>
+                <TraitList traits={traits} />
+              </div>
+            )}
           </div>
 
           {state.phase === 'STAT_ALLOCATE' && (
@@ -138,6 +142,7 @@ export default function GameBoard({
               onFinish={onCombatEnd}
               onAutoResolve={onAutoCombat}
               onCancel={onCancelCombat}
+              hideFact={!!state.currentEvent?.fact}
             /></Suspense>
           )}
 

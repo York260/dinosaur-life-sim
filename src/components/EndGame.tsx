@@ -33,11 +33,11 @@ function RunStatus({ run, trial }: { run: EndgameRun; trial: number }) {
   return (
     <div className="eg-status">
       <span className={run.hp <= 25 ? 'danger' : ''}>❤️ {run.hp}</span>
-      <span>🦕 族群 {run.pack}</span>
+      {(run.pack > 0 || run.startPack > 0) && <span>🦕 族群 {run.pack}</span>}
       {trial >= 3 && <span className={run.food < 25 ? 'danger' : ''}>🍖 食物 {run.food}</span>}
       {trial >= 3 && <span className={run.warmth < 25 ? 'danger' : ''}>🔥 體溫 {run.warmth}</span>}
-      <span>📖 知識 {run.knowledge}</span>
-      <span>⭐ {run.score}</span>
+      {run.knowledge > 0 && <span>📖 知識 {run.knowledge}</span>}
+      <span>⭐ 評分 {run.score}</span>
     </div>
   );
 }
@@ -294,7 +294,7 @@ export default function EndGame({ state, onEnding, onRestart, onArenaAchievement
       <div className="eg-screen fade-in">
         <div className="eg-header">
           <span className="eg-trial-n">{meta.n}</span>
-          <h2>{result.title}</h2>
+          <h2>{result.title.replace(/^審判.・/, '')}</h2>
         </div>
         <div className={`eg-card eg-result ${result.good ? 'good' : 'bad'}`}>
           {result.roll && (
@@ -360,7 +360,7 @@ export default function EndGame({ state, onEnding, onRestart, onArenaAchievement
       <div className="eg-header">
         <span className="eg-trial-n">{meta.n}</span>
         <div>
-          <h2>審判{meta.n}・{meta.name}{winter ? `：${winter.title}` : ''}</h2>
+          <h2>{meta.name}{winter ? `：${winter.title}` : ''}</h2>
           <div className="eg-sub">{winter ? `${winter.subtitle}（第 ${round + 1}/3 回合）` : meta.desc}</div>
         </div>
       </div>
