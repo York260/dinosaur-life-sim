@@ -1,15 +1,17 @@
-import { useReducer, useEffect, useCallback } from 'react';
+import { useReducer, useEffect, useCallback, useState, useRef } from 'react';
 import {
-  GameState, GameActionType, Species, GameAction, Stats,
-  YearResolution, GrowthRoll, CheckResult, EndgamePhaseResult, EndingType, Trait,
-  ActionBreakdown,
+  GameState, GameActionType, Species, GameAction, Stats, Trait, ArenaOutcome, EndgameSummary,
 } from './engine/types';
-import { rollD20, resolveCheck, rollGrowthDice, calculateSuccessRate } from './engine/dice';
 import { generateEvent } from './engine/events';
-import { resolveCombat } from './engine/combat';
 import { applyConsumption, clampResource } from './engine/resources';
-import { getEffectiveStat, getRandomPositiveTrait, getRandomNegativeTrait, getTraitCheckBonus, WEAKNESS_TRAIT } from './engine/traits';
-import { tryPackGrowth } from './engine/pack';
+import { getTraitById, progressTraitCures, WEAKNESS_TRAIT } from './engine/traits';
+import { tryPackGrowth, checkPackDesertion } from './engine/pack';
+import { rollSeason, SEASONS } from './engine/seasons';
+import { resolveYear } from './engine/resolve';
+import {
+  ACHIEVEMENTS, arenaAchievements, unlock, lifeAchievements, loadAchievements,
+  isSecretUnlocked, setSecretUnlocked,
+} from './engine/achievements';
 import { getRandomBgColor } from './theme/colors';
 import SpeciesSelect from './components/SpeciesSelect';
 import GameBoard from './components/GameBoard';
@@ -36,9 +38,16 @@ const INITIAL_STATE: GameState = {
   selectedSubAction: null,
   yearResolution: null,
   growthRoll: null,
-  endgameResults: [],
   ending: null,
+  endgame: null,
   deathCause: null,
+  season: 'normal',
+  flags: {},
+  recentEvents: [],
+  knowledge: 0,
+  mateName: null,
+  runStats: { fightsWon: 0, fightsLost: 0, perfectDodges: 0, bestCombo: 0, rareEvents: 0, eggsHatched: 0, maxPack: 0 },
+  yearNotes: [],
   bgColor: 'hsl(0, 0%, 92%)',
   log: [],
 };
@@ -52,12 +61,16 @@ function gameReducer(state: GameState, action: GameActionType): GameState {
 
     case 'SELECT_SPECIES': {
       const sp = action.species;
+      const traits = (sp.startTraits ?? []).map(id => getTraitById(id)).filter((t): t is Trait => !!t);
       return {
         ...INITIAL_STATE,
         phase: 'YEAR_EVENT',
         species: sp,
         stats: { ...sp.baseStats },
+        traits,
+        season: rollSeason(1, INITIAL_STATE.maxYear),
         bgColor: getRandomBgColor(sp.id),
+        yearNotes: sp.id === 'chicken' ? ['🐔 你睜開眼睛，發現自己在 6600 萬年前的森林裡。咕？'] : [],
       };
     }
 
@@ -68,6 +81,10 @@ function gameReducer(state: GameState, action: GameActionType): GameState {
         currentEvent: action.event,
         selectedMainAction: null,
         selectedSubAction: null,
+        recentEvents: [...state.recentEvents, action.event.templateId].slice(-6),
+        runStats: action.event.rarity === 'rare' || action.event.rarity === 'legendary'
+          ? { ...state.runStats, rareEvents: state.runStats.rareEvents + 1 }
+          : state.runStats,
       };
 
     case 'SELECT_MAIN_ACTION':
@@ -79,47 +96,63 @@ function gameReducer(state: GameState, action: GameActionType): GameState {
     case 'CONFIRM_ACTIONS':
       return { ...state, phase: 'RESOLVE' };
 
+    case 'START_COMBAT':
+      return { ...state, phase: 'COMBAT' };
+
+    case 'CANCEL_COMBAT':
+      return { ...state, phase: 'ACTION_SELECT' };
+
     case 'RESOLVE_ACTIONS': {
-      // Apply stat changes from resolution
+      const res = action.resolution;
       const resolvedStats = { ...state.stats };
-      if (action.resolution.statChanges) {
-        for (const [key, val] of Object.entries(action.resolution.statChanges)) {
+      if (res.statChanges) {
+        for (const [key, val] of Object.entries(res.statChanges)) {
           if (val) {
             resolvedStats[key as keyof Stats] = Math.max(0, Math.min(100, resolvedStats[key as keyof Stats] + val));
           }
         }
       }
+      let traits = [...state.traits];
+      for (const t of [res.traitGained, ...(res.extraTraits ?? [])]) {
+        if (t && !traits.some(x => x.id === t.id)) traits.push(t);
+      }
+      if (res.traitRemoved) traits = traits.filter(t => t.id !== res.traitRemoved);
+      if (res.mateGained) traits = traits.filter(t => t.id !== 'grief');
+
+      const flags = { ...state.flags };
+      for (const f of res.flagsSet ?? []) if (!flags[f]) flags[f] = state.year;
+
+      const packSize = Math.max(0, state.packSize + res.packChange);
+      const arena = res.mainBreakdown?.arena;
+      const runStats = { ...state.runStats, maxPack: Math.max(state.runStats.maxPack, packSize) };
+      if (arena) {
+        if (arena.result === 'victory') runStats.fightsWon++;
+        else runStats.fightsLost++;
+        runStats.perfectDodges += arena.perfectDodges;
+        runStats.bestCombo = Math.max(runStats.bestCombo, arena.maxCombo);
+      }
+
       return {
         ...state,
         phase: 'DICE_ROLL',
-        yearResolution: action.resolution,
-        hp: clampResource(state.hp + action.resolution.hpChange),
-        hunger: clampResource(state.hunger + action.resolution.hungerChange),
-        hydration: clampResource(state.hydration + action.resolution.hydrationChange),
-        packSize: Math.max(0, state.packSize + action.resolution.packChange),
-        hasMate: state.hasMate || (action.resolution.actionNarrative.includes('找到了伴侶')),
+        yearResolution: res,
+        hp: clampResource(state.hp + res.hpChange),
+        hunger: clampResource(state.hunger + res.hungerChange),
+        hydration: clampResource(state.hydration + res.hydrationChange),
+        packSize,
+        hasMate: (state.hasMate && !res.mateLost) || !!res.mateGained,
         stats: resolvedStats,
-        traits: (() => {
-          let newTraits = [...state.traits];
-          if (action.resolution.traitGained) {
-            if (!newTraits.find(t => t.id === action.resolution.traitGained!.id)) {
-              newTraits.push(action.resolution.traitGained);
-            }
-          }
-          if (action.resolution.traitRemoved) {
-            newTraits = newTraits.filter(t => t.id !== action.resolution.traitRemoved);
-          }
-          return newTraits;
-        })(),
+        traits,
+        flags,
+        knowledge: state.knowledge + (res.knowledgeGain ?? 0),
+        runStats,
       };
     }
 
     case 'ROLL_GROWTH': {
-      let newTraits = [...state.traits];
-      if (action.roll.bonusTrait) {
-        if (!newTraits.find(t => t.id === action.roll.bonusTrait!.id)) {
-          newTraits.push(action.roll.bonusTrait);
-        }
+      const newTraits = [...state.traits];
+      if (action.roll.bonusTrait && !newTraits.find(t => t.id === action.roll.bonusTrait!.id)) {
+        newTraits.push(action.roll.bonusTrait);
       }
       return {
         ...state,
@@ -151,27 +184,40 @@ function gameReducer(state: GameState, action: GameActionType): GameState {
     case 'ADVANCE_YEAR': {
       const newYear = state.year + 1;
       const newBg = state.species ? getRandomBgColor(state.species.id) : state.bgColor;
+      const notes: string[] = [];
 
-      // Apply resource consumption
+      // 資源消耗（含季節與族群負擔）
       const consumption = applyConsumption(state);
-      const newHp = clampResource(state.hp - consumption.hpPenalty);
+      notes.push(...consumption.warnings);
       const newHunger = consumption.newHunger;
       const newHydration = consumption.newHydration;
+      let newHp = clampResource(state.hp - consumption.hpPenalty + consumption.hpRegen);
+      if (consumption.hpRegen > 0 && state.hp < 100) notes.push(`🩹 營養充足，傷口自然癒合：HP +${consumption.hpRegen}`);
 
-      // Handle weakness trait: add if starving/dehydrated, remove if recovered
-      let advTraits = [...state.traits];
-      const hasWeakness = advTraits.some(t => t.id === 'weakness');
-      if (consumption.addWeakness && !hasWeakness) {
-        advTraits.push({ ...WEAKNESS_TRAIT });
-      } else if (!consumption.addWeakness && hasWeakness) {
-        advTraits = advTraits.filter(t => t.id !== 'weakness');
+      // 虛弱
+      let traits = [...state.traits];
+      const hasWeakness = traits.some(t => t.id === 'weakness');
+      if (consumption.addWeakness && !hasWeakness) traits.push({ ...WEAKNESS_TRAIT });
+      else if (!consumption.addWeakness && hasWeakness) traits = traits.filter(t => t.id !== 'weakness');
+
+      // 負面詞條解除進度
+      const rested = [state.selectedMainAction, state.selectedSubAction].some(a => a?.tags?.includes('rest'));
+      const cure = progressTraitCures(traits, { rested, hunger: newHunger });
+      traits = cure.traits;
+      for (const name of cure.cured) notes.push(`✨ 負面詞條「${name}」已解除！`);
+
+      // 族群：繁衍與離散
+      const growth = tryPackGrowth(state);
+      let packSize = state.packSize + growth.grew;
+      if (growth.narrative) notes.push(`🥚 ${growth.narrative}`);
+      const desert = checkPackDesertion(packSize, newHunger);
+      if (desert.lost) {
+        packSize -= desert.lost;
+        notes.push(`😢 ${desert.narrative}`);
       }
 
-      // Pack growth
-      const packGrowth = tryPackGrowth(state);
-      const newPackSize = state.packSize + (packGrowth.grew ? 1 : 0);
+      const runStats = { ...state.runStats, maxPack: Math.max(state.runStats.maxPack, packSize) };
 
-      // Check death
       if (newHp <= 0) {
         return {
           ...state,
@@ -180,40 +226,29 @@ function gameReducer(state: GameState, action: GameActionType): GameState {
           hunger: newHunger,
           hydration: newHydration,
           year: newYear,
-          traits: advTraits,
-          deathCause: '你的恐龍因為傷重/飢渴而死亡了。',
+          traits,
+          deathCause: '你的恐龍因為傷重、飢餓或脫水而死亡了。',
         };
       }
 
-      // Check endgame
-      if (newYear > state.maxYear) {
-        return {
-          ...state,
-          phase: 'ENDGAME_PHASE1',
-          year: newYear,
-          hp: newHp,
-          hunger: newHunger,
-          hydration: newHydration,
-          packSize: newPackSize,
-          traits: advTraits,
-          bgColor: newBg,
-          currentEvent: null,
-          selectedMainAction: null,
-          selectedSubAction: null,
-          yearResolution: null,
-          growthRoll: null,
-        };
+      const season = rollSeason(newYear, state.maxYear);
+      if (newYear <= state.maxYear) {
+        const si = SEASONS[season];
+        notes.unshift(`${si.emoji} 今年是「${si.name}」：${si.desc}`);
       }
+      newHp = clampResource(newHp);
 
-      return {
+      const common = {
         ...state,
-        phase: 'YEAR_EVENT',
         year: newYear,
         hp: newHp,
         hunger: newHunger,
         hydration: newHydration,
-        packSize: newPackSize,
-        traits: advTraits,
+        packSize,
+        traits,
+        season,
+        runStats,
+        yearNotes: notes,
         bgColor: newBg,
         currentEvent: null,
         selectedMainAction: null,
@@ -221,22 +256,15 @@ function gameReducer(state: GameState, action: GameActionType): GameState {
         yearResolution: null,
         growthRoll: null,
       };
-    }
 
-    case 'ENTER_ENDGAME':
-      return { ...state, phase: 'ENDGAME_PHASE1' };
-
-    case 'ENDGAME_RESULT': {
-      const newResults = [...state.endgameResults, action.result];
-      let nextPhase = state.phase;
-      if (action.result.phase === 1) nextPhase = 'ENDGAME_PHASE2';
-      else if (action.result.phase === 2) nextPhase = 'ENDGAME_PHASE3';
-      else if (action.result.phase === 3) nextPhase = 'RESULT';
-      return { ...state, phase: nextPhase, endgameResults: newResults };
+      if (newYear > state.maxYear) {
+        return { ...common, phase: 'ENDGAME' };
+      }
+      return { ...common, phase: 'YEAR_EVENT' };
     }
 
     case 'SET_ENDING':
-      return { ...state, ending: action.ending, phase: 'RESULT' };
+      return { ...state, endgame: action.summary, ending: action.summary.ending, phase: 'RESULT' };
 
     case 'GAME_OVER':
       return { ...state, phase: 'GAME_OVER', deathCause: action.cause };
@@ -249,272 +277,108 @@ function gameReducer(state: GameState, action: GameActionType): GameState {
   }
 }
 
+// ========== Konami 秘技 ==========
+
+const KONAMI = ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight', 'b', 'a'];
+
 // ========== App ==========
 
 export default function App() {
   const [state, dispatch] = useReducer(gameReducer, INITIAL_STATE);
+  const [toasts, setToasts] = useState<{ id: number; text: string }[]>([]);
+  const [secretUnlocked, setSecret] = useState(isSecretUnlocked());
+  const [showAchievements, setShowAchievements] = useState(false);
+  const toastId = useRef(0);
+  const konamiIdx = useRef(0);
 
-  // Apply background color
+  const toast = useCallback((text: string) => {
+    toastId.current += 1;
+    const id = toastId.current;
+    setToasts(t => [...t, { id, text }]);
+    setTimeout(() => setToasts(t => t.filter(x => x.id !== id)), 3800);
+  }, []);
+
+  const announce = useCallback((ids: string[]) => {
+    for (const id of unlock(ids)) {
+      const a = ACHIEVEMENTS.find(x => x.id === id);
+      if (a) toast(`🏆 成就解鎖：${a.icon} ${a.name}`);
+    }
+  }, [toast]);
+
+  // 背景色
   useEffect(() => {
     document.body.style.backgroundColor = state.bgColor;
   }, [state.bgColor]);
 
-  // Generate event when entering YEAR_EVENT phase
+  // 產生事件
   useEffect(() => {
     if (state.phase === 'YEAR_EVENT' && !state.currentEvent && state.species) {
       const event = generateEvent(state);
       dispatch({ type: 'SET_EVENT', event });
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.phase, state.currentEvent, state.species]);
+
+  // 人生歷程成就
+  useEffect(() => {
+    if (state.species) announce(lifeAchievements(state));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.flags, state.runStats.maxPack, state.species]);
+
+  // Konami 秘技：標題畫面輸入 ↑↑↓↓←→←→BA
+  useEffect(() => {
+    if (state.phase !== 'TITLE' && state.phase !== 'SPECIES_SELECT') return;
+    const onKey = (e: KeyboardEvent) => {
+      const k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+      if (k === KONAMI[konamiIdx.current]) {
+        konamiIdx.current += 1;
+        if (konamiIdx.current === KONAMI.length) {
+          konamiIdx.current = 0;
+          setSecretUnlocked();
+          setSecret(true);
+          toast('🐔 咕咕！隱藏物種「時空迷途的雞」已解鎖！');
+        }
+      } else {
+        konamiIdx.current = k === KONAMI[0] ? 1 : 0;
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [state.phase, toast]);
 
   // ========== Handlers ==========
 
-  const handleStart = useCallback(() => {
-    dispatch({ type: 'START_GAME' });
-  }, []);
-
-  const handleSelectSpecies = useCallback((species: Species) => {
-    dispatch({ type: 'SELECT_SPECIES', species });
-  }, []);
-
-  const handleSelectMain = useCallback((action: GameAction) => {
-    dispatch({ type: 'SELECT_MAIN_ACTION', action });
-  }, []);
-
-  const handleSelectSub = useCallback((action: GameAction | null) => {
-    dispatch({ type: 'SELECT_SUB_ACTION', action });
-  }, []);
+  const finishYear = useCallback((arena?: ArenaOutcome) => {
+    const out = resolveYear(state, arena);
+    if (out.gameOverCause) {
+      dispatch({ type: 'GAME_OVER', cause: out.gameOverCause });
+      return;
+    }
+    dispatch({ type: 'RESOLVE_ACTIONS', resolution: out.resolution });
+    dispatch({ type: 'ROLL_GROWTH', roll: out.growth });
+  }, [state]);
 
   const handleConfirmActions = useCallback(() => {
+    const main = state.selectedMainAction;
+    if (!main) return;
+    if (main.isCombat) {
+      dispatch({ type: 'START_COMBAT' });
+      return;
+    }
     dispatch({ type: 'CONFIRM_ACTIONS' });
+    finishYear();
+  }, [state.selectedMainAction, finishYear]);
 
-    const mainAction = state.selectedMainAction;
-    if (!mainAction) return;
+  const handleCombatEnd = useCallback((o: ArenaOutcome) => {
+    announce(arenaAchievements(o, state.selectedMainAction?.enemy));
+    finishYear(o);
+  }, [announce, finishYear, state.selectedMainAction]);
 
-    const subAction = state.selectedSubAction;
-    const primaryStat = mainAction.primaryStat;
-    const effectiveStat = getEffectiveStat(state.stats[primaryStat], primaryStat, state.traits, state.hunger);
-
-    // Roll for main action
-    const roll = rollD20();
-    const checkResult: CheckResult = resolveCheck(roll, effectiveStat, mainAction.dc, state.traits, primaryStat);
-    const isSuccess = checkResult === 'success' || checkResult === 'critical_success';
-
-    let narrative = '';
-    let hpChange = 0;
-    let hungerChange = 0;
-    let hydrationChange = 0;
-    let traitGained: Trait | undefined;
-    let traitRemoved: string | undefined;
-    let packChange = 0;
-    let combatOutcome = undefined;
-    const totalStatChanges: Partial<Stats> = {};
-
-    // Build main breakdown
-    let mainBreakdown: ActionBreakdown;
-
-    // Handle combat actions
-    if (mainAction.isCombat && mainAction.threatDC) {
-      const combatResult = resolveCombat(
-        getEffectiveStat(state.stats.str, 'str', state.traits, state.hunger),
-        getEffectiveStat(state.stats.agi, 'agi', state.traits, state.hunger),
-        state.packSize,
-        state.traits,
-        mainAction.threatDC
-      );
-      narrative = combatResult.narrative;
-      hpChange = combatResult.hpChange;
-      hungerChange = combatResult.hungerGain;
-      combatOutcome = combatResult.outcome;
-
-      const combatStatBonus = Math.floor(Math.max(
-        getEffectiveStat(state.stats.str, 'str', state.traits, state.hunger),
-        getEffectiveStat(state.stats.agi, 'agi', state.traits, state.hunger)
-      ) / 5);
-
-      mainBreakdown = {
-        actionLabel: mainAction.label,
-        roll: combatResult.roll,
-        primaryStat: 'str',
-        statBonus: combatStatBonus,
-        traitBonus: combatResult.total - combatResult.roll - combatStatBonus - state.packSize,
-        total: combatResult.total,
-        dc: mainAction.threatDC,
-        checkResult: combatResult.outcome === 'great_victory' ? 'critical_success'
-          : combatResult.outcome === 'minor_victory' ? 'success'
-          : combatResult.outcome === 'defeat' ? 'failure'
-          : 'critical_failure',
-        narrative: combatResult.narrative,
-        resourceCost: mainAction.resourceCost,
-        hpChange: combatResult.hpChange,
-        hungerChange: combatResult.hungerGain,
-        hydrationChange: 0,
-        packChange: 0,
-        isCombat: true,
-        combatOutcome: combatResult.outcome,
-        combatPackBonus: state.packSize,
-      };
-
-      // Collect statChanges from combat action results
-      const combatIsSuccess = combatResult.outcome === 'great_victory' || combatResult.outcome === 'minor_victory';
-      const combatActionResult = combatIsSuccess ? mainAction.successResult : mainAction.failureResult;
-      if (combatActionResult.statChanges) {
-        for (const [k, v] of Object.entries(combatActionResult.statChanges)) {
-          if (v) totalStatChanges[k as keyof Stats] = (totalStatChanges[k as keyof Stats] || 0) + v;
-        }
-        mainBreakdown.statChanges = combatActionResult.statChanges;
-      }
-
-      if (combatResult.outcome === 'catastrophic_defeat') {
-        dispatch({ type: 'GAME_OVER', cause: '在戰鬥中慘遭致命攻擊，你的恐龍倒下了……' });
-        return;
-      }
-      if (combatResult.outcome === 'defeat') {
-        if (Math.random() < 0.4) {
-          traitGained = getRandomNegativeTrait(state.traits);
-        }
-      }
-    } else {
-      // Normal action resolution
-      const result = isSuccess ? mainAction.successResult : mainAction.failureResult;
-      narrative = result.narrative;
-      hpChange = result.hpChange;
-      hungerChange = result.hungerChange;
-      hydrationChange = result.hydrationChange;
-      packChange = result.packChange || 0;
-      if (result.traitGain) {
-        traitGained = getRandomPositiveTrait(state.traits);
-      }
-      if (result.traitRemove) {
-        traitRemoved = result.traitRemove;
-      }
-      // Collect statChanges from main action
-      if (result.statChanges) {
-        for (const [k, v] of Object.entries(result.statChanges)) {
-          if (v) totalStatChanges[k as keyof Stats] = (totalStatChanges[k as keyof Stats] || 0) + v;
-        }
-      }
-
-      // Handle mate chance (adult stage: year >= 13)
-      if (isSuccess && result.mateChance && !state.hasMate && state.year >= 13) {
-        narrative += '\n你成功找到了伴侶！';
-        packChange += 1;
-      }
-
-      // Critical success bonus
-      if (checkResult === 'critical_success' && !traitGained) {
-        traitGained = getRandomPositiveTrait(state.traits);
-        narrative += '\n大成功！額外獲得了一個正面詞條！';
-      }
-
-      // Critical failure penalty
-      if (checkResult === 'critical_failure') {
-        hpChange -= 10;
-        narrative += '\n大失敗！遭受了額外傷害。';
-        if (Math.random() < 0.3) {
-          traitGained = getRandomNegativeTrait(state.traits);
-        }
-      }
-
-      const mainStatBonus = Math.floor(effectiveStat / 5);
-      const mainTraitBonus = getTraitCheckBonus(state.traits, primaryStat);
-
-      mainBreakdown = {
-        actionLabel: mainAction.label,
-        roll,
-        primaryStat,
-        statBonus: mainStatBonus,
-        traitBonus: mainTraitBonus,
-        total: roll + mainStatBonus + mainTraitBonus,
-        dc: mainAction.dc,
-        checkResult,
-        narrative,
-        resourceCost: mainAction.resourceCost,
-        hpChange,
-        hungerChange,
-        hydrationChange,
-        packChange,
-        statChanges: result.statChanges,
-      };
-    }
-
-    // Sub action
-    let subBreakdown: ActionBreakdown | undefined;
-    if (subAction) {
-      const subPrimaryStat = subAction.primaryStat;
-      const subEffectiveStat = getEffectiveStat(state.stats[subPrimaryStat], subPrimaryStat, state.traits, state.hunger);
-      const subRoll = rollD20();
-      const subDc = subAction.dc + 3; // DC+3 penalty
-      const subCheckResult = resolveCheck(subRoll, subEffectiveStat, subDc, state.traits, subPrimaryStat);
-      const subSuccess = subCheckResult === 'success' || subCheckResult === 'critical_success';
-      const subOutcome = subSuccess ? subAction.successResult : subAction.failureResult;
-
-      narrative += `\n\n【副行動】${subAction.label}（擲骰=${subRoll}，${subSuccess ? '成功' : '失敗'}）\n${subOutcome.narrative}`;
-      hpChange += subOutcome.hpChange;
-      hungerChange += subOutcome.hungerChange;
-      hydrationChange += subOutcome.hydrationChange;
-      packChange += subOutcome.packChange || 0;
-      if (subOutcome.traitRemove) {
-        traitRemoved = subOutcome.traitRemove;
-      }
-      // Collect statChanges from sub action
-      if (subOutcome.statChanges) {
-        for (const [k, v] of Object.entries(subOutcome.statChanges)) {
-          if (v) totalStatChanges[k as keyof Stats] = (totalStatChanges[k as keyof Stats] || 0) + v;
-        }
-      }
-
-      const subStatBonus = Math.floor(subEffectiveStat / 5);
-      const subTraitBonus = getTraitCheckBonus(state.traits, subPrimaryStat);
-
-      subBreakdown = {
-        actionLabel: subAction.label,
-        roll: subRoll,
-        primaryStat: subPrimaryStat,
-        statBonus: subStatBonus,
-        traitBonus: subTraitBonus,
-        total: subRoll + subStatBonus + subTraitBonus,
-        dc: subDc,
-        checkResult: subCheckResult,
-        narrative: subOutcome.narrative,
-        resourceCost: subAction.resourceCost,
-        hpChange: subOutcome.hpChange,
-        hungerChange: subOutcome.hungerChange,
-        hydrationChange: subOutcome.hydrationChange,
-        packChange: subOutcome.packChange || 0,
-        statChanges: subOutcome.statChanges,
-      };
-    }
-
-    const resolution: YearResolution = {
-      actionNarrative: narrative,
-      roll,
-      checkResult,
-      hpChange,
-      hungerChange,
-      hydrationChange,
-      traitGained,
-      traitRemoved,
-      packChange,
-      combatOutcome,
-      mainBreakdown,
-      subBreakdown,
-      statChanges: Object.keys(totalStatChanges).length > 0 ? totalStatChanges : undefined,
-    };
-
-    dispatch({ type: 'RESOLVE_ACTIONS', resolution });
-
-    // Growth roll
-    const growth = rollGrowthDice(state.traits);
-    if (growth.isCritical) {
-      growth.bonusTrait = getRandomPositiveTrait([...state.traits, ...(traitGained ? [traitGained] : [])]);
-    }
-    dispatch({ type: 'ROLL_GROWTH', roll: growth });
-
-  }, [state.selectedMainAction, state.selectedSubAction, state.stats, state.traits, state.hunger, state.packSize, state.hasMate, state.year]);
+  const handleAutoCombat = useCallback(() => {
+    finishYear();
+  }, [finishYear]);
 
   const handleContinueFromDice = useCallback(() => {
-    // Check for death after resolution
     if (state.hp <= 0) {
       dispatch({ type: 'GAME_OVER', cause: '你的恐龍因傷重而死亡了。' });
       return;
@@ -524,81 +388,101 @@ export default function App() {
 
   const handleAllocateStats = useCallback((allocation: Partial<Stats>) => {
     dispatch({ type: 'ALLOCATE_STATS', allocation });
-    // After allocation, advance year
-    setTimeout(() => {
-      dispatch({ type: 'ADVANCE_YEAR' });
-    }, 100);
+    setTimeout(() => dispatch({ type: 'ADVANCE_YEAR' }), 100);
   }, []);
 
-  const handleRestart = useCallback(() => {
-    dispatch({ type: 'RESTART' });
-  }, []);
+  const handleRestart = useCallback(() => dispatch({ type: 'RESTART' }), []);
 
-  const handleEndgameResult = useCallback((result: EndgamePhaseResult) => {
-    dispatch({ type: 'ENDGAME_RESULT', result });
-  }, []);
-
-  const handleSetEnding = useCallback((ending: EndingType) => {
-    dispatch({ type: 'SET_ENDING', ending });
-  }, []);
+  const handleEnding = useCallback((summary: EndgameSummary) => {
+    for (const id of summary.newAchievements) {
+      const a = ACHIEVEMENTS.find(x => x.id === id);
+      if (a) toast(`🏆 成就解鎖：${a.icon} ${a.name}`);
+    }
+    dispatch({ type: 'SET_ENDING', summary });
+  }, [toast]);
 
   // ========== Render ==========
 
+  const toastLayer = (
+    <div className="toast-layer">
+      {toasts.map(t => <div key={t.id} className="toast">{t.text}</div>)}
+    </div>
+  );
+
+  let screen: JSX.Element;
+
   if (state.phase === 'TITLE') {
-    return (
+    const unlocked = loadAchievements();
+    screen = (
       <div className="title-screen">
+        <div className="title-dino">🦖</div>
         <h1>恐龍人生模擬器</h1>
         <p className="subtitle">DinoLife Simulator</p>
-        <p className="subtitle" style={{ fontSize: '0.9rem', maxWidth: 400, marginBottom: '1.5rem' }}>
-          在白堊紀末期生存、成長、繁衍，帶領族群度過滅絕隕石的末日挑戰
+        <p className="subtitle" style={{ fontSize: '0.9rem', maxWidth: 440, marginBottom: '1.5rem' }}>
+          在白堊紀末期生存、戰鬥、繁衍。二十五年後，一顆直徑十公里的小行星將從天而降——
+          你能帶領族群，撐過三重審判嗎？
         </p>
-        <button className="start-btn" onClick={handleStart}>
+        <button className="start-btn" onClick={() => dispatch({ type: 'START_GAME' })}>
           開始遊戲
         </button>
+        <button className="achv-btn" onClick={() => setShowAchievements(v => !v)}>
+          🏆 成就 {unlocked.length}/{ACHIEVEMENTS.length}
+        </button>
+        {showAchievements && (
+          <div className="achv-grid card fade-in">
+            {ACHIEVEMENTS.map(a => {
+              const got = unlocked.includes(a.id);
+              return (
+                <div key={a.id} className={`achv-item ${got ? 'got' : ''}`}>
+                  <span className="achv-icon">{got || !a.secret ? a.icon : '❔'}</span>
+                  <div>
+                    <div className="achv-name">{got || !a.secret ? a.name : '？？？'}</div>
+                    <div className="achv-desc">{got || !a.secret ? a.desc : '隱藏成就'}</div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+        <p className="title-hint">
+          {secretUnlocked ? '🐔 有什麼東西從未來穿越回來了……' : '🥚 傳說，記得古老密碼的人，能找到一隻迷路的生物。'}
+        </p>
       </div>
     );
-  }
-
-  if (state.phase === 'SPECIES_SELECT') {
-    return <SpeciesSelect onSelect={handleSelectSpecies} />;
-  }
-
-  if (state.phase === 'GAME_OVER') {
-    return (
+  } else if (state.phase === 'SPECIES_SELECT') {
+    screen = <SpeciesSelect onSelect={(sp: Species) => dispatch({ type: 'SELECT_SPECIES', species: sp })} showSecret={secretUnlocked} />;
+  } else if (state.phase === 'GAME_OVER') {
+    screen = (
       <GameOver
         cause={state.deathCause || '未知原因'}
         year={state.year}
         speciesName={state.species?.name || '恐龍'}
-        onRestart={handleRestart}
-      />
-    );
-  }
-
-  if (
-    state.phase === 'ENDGAME_PHASE1' ||
-    state.phase === 'ENDGAME_PHASE2' ||
-    state.phase === 'ENDGAME_PHASE3' ||
-    state.phase === 'RESULT'
-  ) {
-    return (
-      <EndGame
         state={state}
-        onPhaseResult={handleEndgameResult}
-        onSetEnding={handleSetEnding}
         onRestart={handleRestart}
+      />
+    );
+  } else if (state.phase === 'ENDGAME' || state.phase === 'RESULT') {
+    screen = <EndGame state={state} onEnding={handleEnding} onRestart={handleRestart} onArenaAchievements={announce} />;
+  } else {
+    screen = (
+      <GameBoard
+        state={state}
+        onSelectMain={(a: GameAction) => dispatch({ type: 'SELECT_MAIN_ACTION', action: a })}
+        onSelectSub={(a: GameAction | null) => dispatch({ type: 'SELECT_SUB_ACTION', action: a })}
+        onConfirmActions={handleConfirmActions}
+        onContinueFromDice={handleContinueFromDice}
+        onAllocateStats={handleAllocateStats}
+        onCombatEnd={handleCombatEnd}
+        onAutoCombat={handleAutoCombat}
+        onCancelCombat={() => dispatch({ type: 'CANCEL_COMBAT' })}
       />
     );
   }
 
-  // Main game phases
   return (
-    <GameBoard
-      state={state}
-      onSelectMain={handleSelectMain}
-      onSelectSub={handleSelectSub}
-      onConfirmActions={handleConfirmActions}
-      onContinueFromDice={handleContinueFromDice}
-      onAllocateStats={handleAllocateStats}
-    />
+    <>
+      {screen}
+      {toastLayer}
+    </>
   );
 }

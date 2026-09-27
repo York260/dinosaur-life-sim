@@ -1,0 +1,488 @@
+/* ========== 戰前簡報 ========== */
+.arena-brief {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+
+.arena-brief h3 {
+  font-size: 1.2rem;
+}
+
+.arena-brief-tag {
+  align-self: flex-start;
+  font-size: 0.75rem;
+  font-weight: 800;
+  padding: 0.2rem 0.7rem;
+  border-radius: 99px;
+  background: #2c2c2c;
+  color: #ffd23a;
+  letter-spacing: 1px;
+}
+
+.arena-brief-enemy {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.8rem;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #2b1d18, #4a2a20);
+  color: #f5e6d8;
+}
+
+.arena-brief-enemy .enemy-name {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #ffb070;
+}
+
+.arena-brief-enemy .enemy-intro {
+  font-size: 0.85rem;
+  opacity: 0.9;
+}
+
+.arena-brief-enemy .enemy-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  font-weight: 700;
+  white-space: nowrap;
+  font-size: 0.9rem;
+}
+
+.arena-fact {
+  font-size: 0.8rem;
+  color: #5a4a2a;
+  background: #fbf3dc;
+  border-left: 3px solid #d9a441;
+  padding: 0.5rem 0.7rem;
+  border-radius: 6px;
+}
+
+.arena-controls {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.35rem 1rem;
+  font-size: 0.8rem;
+}
+
+.arena-controls > div {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  flex-wrap: wrap;
+}
+
+.arena-controls span {
+  color: #555;
+  margin-left: 0.3rem;
+}
+
+kbd {
+  display: inline-block;
+  min-width: 1.6em;
+  padding: 0.05rem 0.4rem;
+  border-radius: 5px;
+  border: 1px solid #bbb;
+  border-bottom-width: 3px;
+  background: #fff;
+  font-family: inherit;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.arena-tips {
+  font-size: 0.8rem;
+  color: #444;
+  padding-left: 1.2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.arena-tips .red { color: #d63031; }
+.arena-tips .blue { color: #0984e3; }
+.arena-tips .gold { color: #c78b00; }
+
+.arena-brief-actions {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.arena-start-btn {
+  background: linear-gradient(135deg, #c0392b, #e67e22);
+  color: #fff;
+  font-size: 1rem;
+  padding: 0.7rem 1.6rem;
+  box-shadow: 0 4px 14px rgba(192, 57, 43, 0.35);
+}
+
+.arena-auto-btn {
+  background: #eee;
+  color: #555;
+}
+
+/* ========== 戰鬥畫面 ========== */
+.arena-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.arena-stage {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  max-height: 78vh;
+  border-radius: 14px;
+  overflow: hidden;
+  background: #111;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.35);
+  user-select: none;
+  touch-action: none;
+}
+
+@media (max-width: 640px) {
+  .arena-stage {
+    aspect-ratio: 3 / 4;
+  }
+}
+
+.arena-canvas,
+.arena-overlay {
+  position: absolute;
+  inset: 0;
+}
+
+.arena-overlay {
+  pointer-events: none;
+  overflow: hidden;
+}
+
+/* 飄字 */
+.arena-float {
+  position: absolute;
+  left: 0;
+  top: 0;
+  font-weight: 900;
+  white-space: nowrap;
+  pointer-events: none;
+  text-shadow: 0 2px 0 #000, 0 0 6px rgba(0, 0, 0, 0.6);
+  will-change: transform, opacity;
+}
+
+.ft-dmg { color: #fff; font-size: 1.3rem; }
+.ft-big { color: #ffb347; font-size: 1.6rem; }
+.ft-crit { color: #ffe14d; font-size: 2.1rem; -webkit-text-stroke: 1px #7a3b00; }
+.ft-hurt { color: #ff4d4d; font-size: 1.7rem; }
+.ft-mid { color: #e8f4ff; font-size: 1.05rem; }
+.ft-warn { color: #ffb3b3; font-size: 0.95rem; }
+.ft-open { color: #ffd23a; font-size: 1.2rem; }
+.ft-combo { color: #ff7ad9; font-size: 1.2rem; }
+.ft-perfect { color: #6ee7ff; font-size: 1.8rem; letter-spacing: 2px; }
+
+/* HUD */
+.arena-hud {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 0.7rem 0.9rem;
+  color: #fff;
+}
+
+.hud-enemy .hud-name,
+.hud-player {
+  text-shadow: 0 1px 3px #000;
+}
+
+.hud-name {
+  font-weight: 800;
+  font-size: 0.95rem;
+  margin-bottom: 0.2rem;
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+}
+
+.boss-tag {
+  background: #c0392b;
+  font-size: 0.65rem;
+  padding: 0.05rem 0.4rem;
+  border-radius: 4px;
+  letter-spacing: 1px;
+}
+
+.enrage-tag {
+  background: #ff3b00;
+  font-size: 0.65rem;
+  padding: 0.05rem 0.4rem;
+  border-radius: 4px;
+  animation: pulse 0.5s infinite;
+}
+
+.arena-bar {
+  position: relative;
+  height: 14px;
+  border-radius: 7px;
+  background: rgba(0, 0, 0, 0.55);
+  border: 2px solid rgba(255, 255, 255, 0.7);
+  overflow: hidden;
+}
+
+.arena-bar.enemy { height: 18px; }
+.arena-bar.stamina { height: 8px; margin-top: 4px; border-width: 1px; max-width: 60%; }
+
+.arena-bar-fill,
+.arena-bar-lag {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+}
+
+.arena-bar-lag {
+  background: #fff3b0;
+  transition: width 0.8s ease 0.25s;
+}
+
+.arena-bar-fill {
+  transition: width 0.08s linear;
+}
+
+.arena-bar.enemy .arena-bar-fill { background: linear-gradient(90deg, #8b0000, #e74c3c); }
+.arena-bar.player .arena-bar-fill { background: linear-gradient(90deg, #1e8449, #2ecc71); }
+.arena-bar.stamina .arena-bar-fill { background: linear-gradient(90deg, #f39c12, #f7dc6f); }
+.arena-bar.stamina .arena-bar-lag { display: none; }
+
+.arena-bar-label {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.65rem;
+  font-weight: 800;
+}
+
+.hud-player {
+  max-width: 420px;
+}
+
+.hud-skills {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.35rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.hud-skills span {
+  background: rgba(0, 0, 0, 0.5);
+  padding: 0.1rem 0.5rem;
+  border-radius: 99px;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+}
+
+.hud-skills span.off {
+  opacity: 0.35;
+}
+
+.hud-flee {
+  position: relative;
+  margin-top: 0.3rem;
+  height: 14px;
+  width: 160px;
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 7px;
+  overflow: hidden;
+}
+
+.hud-flee div {
+  height: 100%;
+  background: #74b9ff;
+}
+
+.hud-flee span {
+  position: absolute;
+  inset: 0;
+  font-size: 0.65rem;
+  text-align: center;
+  line-height: 14px;
+}
+
+.hud-banner {
+  position: absolute;
+  top: 38%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: clamp(1.8rem, 6vw, 3.4rem);
+  font-weight: 900;
+  color: #fff;
+  -webkit-text-stroke: 2px #000;
+  text-shadow: 0 4px 0 rgba(0, 0, 0, 0.6);
+  white-space: nowrap;
+  animation: bannerPop 0.35s cubic-bezier(0.2, 1.8, 0.4, 1);
+}
+
+@keyframes bannerPop {
+  from { transform: translate(-50%, -50%) scale(2.2); opacity: 0; }
+  to { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+}
+
+.hud-combo {
+  position: absolute;
+  right: 1rem;
+  top: 30%;
+  font-size: 2.6rem;
+  font-weight: 900;
+  color: #ff7ad9;
+  -webkit-text-stroke: 1.5px #3a0030;
+  animation: bannerPop 0.25s ease-out;
+  transform-origin: center;
+}
+
+.hud-combo small {
+  font-size: 0.9rem;
+}
+
+.hud-crit {
+  position: absolute;
+  left: 1rem;
+  top: 30%;
+  font-weight: 800;
+  color: #6ee7ff;
+  text-shadow: 0 0 8px #0077ff;
+  animation: pulse 0.4s infinite;
+}
+
+/* 全螢幕特效 */
+.arena-fx {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.fx-hurt {
+  box-shadow: inset 0 0 120px 30px rgba(255, 0, 0, 0.75);
+  animation: fxFade 0.45s ease-out forwards;
+}
+
+.fx-sacrifice {
+  background: rgba(120, 0, 0, 0.5);
+  animation: fxFade 1.4s ease-out forwards;
+}
+
+.fx-perfect {
+  background: radial-gradient(circle, rgba(110, 231, 255, 0) 30%, rgba(40, 140, 255, 0.45) 100%);
+  animation: fxFade 0.6s ease-out forwards;
+}
+
+.fx-crit {
+  background: rgba(255, 230, 120, 0.25);
+  animation: fxFade 0.2s ease-out forwards;
+}
+
+.fx-ko {
+  background: #fff;
+  animation: fxFade 0.5s ease-out forwards;
+}
+
+.fx-enrage {
+  box-shadow: inset 0 0 160px 40px rgba(255, 60, 0, 0.6);
+  animation: fxFade 1s ease-out forwards;
+}
+
+.fx-roar {
+  background: radial-gradient(circle at 50% 70%, rgba(255, 224, 138, 0.5), transparent 60%);
+  animation: fxFade 0.6s ease-out forwards;
+}
+
+.fx-charge {
+  background: repeating-conic-gradient(from 0deg at 50% 55%, rgba(255, 255, 255, 0.35) 0deg 2deg, transparent 2deg 12deg);
+  mask-image: radial-gradient(circle at 50% 55%, transparent 30%, #000 75%);
+  -webkit-mask-image: radial-gradient(circle at 50% 55%, transparent 30%, #000 75%);
+  animation: fxFade 0.35s ease-out forwards;
+}
+
+@keyframes fxFade {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+/* 結果 */
+.arena-result {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.8rem;
+  color: #fff;
+  padding: 1rem;
+  text-align: center;
+}
+
+.result-title {
+  font-size: 3rem;
+  font-weight: 900;
+  -webkit-text-stroke: 2px #000;
+}
+
+.result-title.win { color: #ffd23a; }
+.result-title.lose { color: #ff7675; }
+.result-title.flee { color: #74b9ff; }
+.result-title.dead { color: #d63031; }
+
+.result-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(80px, 1fr));
+  gap: 0.5rem;
+}
+
+.result-grid div {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 0.4rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.result-grid b {
+  font-size: 1.3rem;
+}
+
+.result-grid span {
+  font-size: 0.7rem;
+  opacity: 0.8;
+}
+
+/* 觸控按鈕 */
+.arena-touch {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.4rem;
+}
+
+.arena-touch button {
+  background: #2c2c2c;
+  color: #fff;
+  padding: 0.8rem 0.2rem;
+  font-size: 1rem;
+  touch-action: none;
+}
+
+.arena-touch .t-bite { background: #c0392b; }
+.arena-touch .t-charge { background: #d35400; }
+.arena-touch .t-small { font-size: 0.8rem; background: #555; }
+
+@media (hover: hover) and (pointer: fine) {
+  .arena-touch {
+    opacity: 0.55;
+  }
+}

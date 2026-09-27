@@ -933,3 +933,181 @@
     gap: 0.3rem;
   }
 }
+
+/* ========== 新增：季節、族群、事件標籤 ========== */
+.game-board.in-combat {
+  max-width: 1280px;
+}
+
+.header-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.3rem;
+}
+
+.season-badge {
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.15rem 0.6rem;
+  border-radius: 99px;
+  background: rgba(0, 0, 0, 0.06);
+  color: #555;
+  cursor: help;
+}
+
+.pack-icons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.1rem;
+  margin-top: 0.4rem;
+  font-size: 1rem;
+}
+
+.pack-more {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #666;
+  align-self: center;
+}
+
+.pack-bonus {
+  margin: 0.4rem 0 0;
+  padding-left: 1.1rem;
+  font-size: 0.72rem;
+  color: #666;
+}
+
+.pack-bonus-tag {
+  margin-left: 0.5rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #1e8449;
+  background: #d5f5e3;
+  padding: 0.1rem 0.5rem;
+  border-radius: 99px;
+}
+
+.year-notes {
+  font-size: 0.85rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  border-left: 4px solid #4a7c59;
+}
+
+.rarity-tag {
+  margin-left: 0.5rem;
+  font-size: 0.7rem;
+  padding: 0.1rem 0.5rem;
+  border-radius: 99px;
+  background: #fdebd0;
+  color: #b9770e;
+}
+
+.rarity-tag.night {
+  background: #d6dbf5;
+  color: #34495e;
+}
+
+.event-narrative.rarity-legendary {
+  box-shadow: 0 0 0 2px #f4d03f, 0 4px 24px rgba(244, 208, 63, 0.45);
+}
+
+.event-narrative.rarity-rare {
+  box-shadow: 0 0 0 2px #af7ac5, 0 4px 18px rgba(175, 122, 197, 0.3);
+}
+
+.event-narrative.rarity-chain {
+  box-shadow: 0 0 0 2px #5dade2, 0 4px 18px rgba(93, 173, 226, 0.3);
+}
+
+.event-fact {
+  margin-top: 0.7rem;
+  font-size: 0.78rem;
+  color: #6e5a2e;
+  background: #fbf3dc;
+  border-left: 3px solid #d9a441;
+  padding: 0.45rem 0.6rem;
+  border-radius: 6px;
+}
+
+.req-tag {
+  margin-left: 0.35rem;
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 0.05rem 0.4rem;
+  border-radius: 4px;
+  background: #e8f6ef;
+  color: #1e8449;
+  vertical-align: middle;
+}
+
+.req-tag.rest { background: #eaf2f8; color: #2471a3; }
+.req-tag.study { background: #fdf2e9; color: #b9770e; }
+
+.action-card.combat {
+  background: linear-gradient(135deg, rgba(60, 20, 12, 0.92), rgba(110, 40, 20, 0.88));
+  color: #fbe9dc;
+}
+
+.action-card.combat .action-desc,
+.action-card.combat .action-stat {
+  color: #f0cdb8;
+}
+
+.combat-badge {
+  font-weight: 900;
+  font-size: 1.1rem;
+  color: #ffd23a;
+  border: 2px solid #ffd23a;
+  border-radius: 10px;
+  padding: 0.3rem 0.5rem;
+  transform: rotate(-6deg);
+}
+
+.arena-summary {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.4rem;
+  margin: 0.5rem 0;
+}
+
+.arena-summary div {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: rgba(0, 0, 0, 0.04);
+  border-radius: 8px;
+  padding: 0.35rem;
+}
+
+.arena-summary b {
+  font-size: 1.2rem;
+}
+
+.arena-summary span {
+  font-size: 0.68rem;
+  color: #777;
+}
+
+.life-notes {
+  font-size: 0.88rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.death-stats,
+.death-tip {
+  font-size: 0.85rem;
+  color: #666;
+  margin-bottom: 0.6rem;
+  max-width: 420px;
+}
+
+.death-tip {
+  background: rgba(255, 255, 255, 0.7);
+  padding: 0.5rem 0.8rem;
+  border-radius: 8px;
+}

@@ -100,3 +100,22 @@
     grid-template-columns: 1fr;
   }
 }
+
+.species-passive {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #922b21;
+  margin: 0.3rem 0;
+}
+
+.species-fact {
+  font-size: 0.72rem;
+  color: #7d6608;
+  margin-top: 0.4rem;
+  line-height: 1.5;
+}
+
+.species-card.secret {
+  box-shadow: 0 0 0 2px #f4d03f, 0 4px 20px rgba(244, 208, 63, 0.5);
+  background: linear-gradient(135deg, rgba(255, 250, 225, 0.95), rgba(255, 255, 255, 0.9));
+}

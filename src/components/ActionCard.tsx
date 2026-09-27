@@ -1,6 +1,7 @@
 import { GameAction, StatKey, Trait } from '../engine/types';
-import { calculateSuccessRate } from '../engine/dice';
+import { calculateSuccessRate, getActionCondition } from '../engine/dice';
 import { getEffectiveStat } from '../engine/traits';
+import { ENEMIES } from '../engine/enemies';
 
 const STAT_LABELS: Record<StatKey, string> = {
   str: '力量',
@@ -23,25 +24,53 @@ interface Props {
   hunger: number;
   selected: boolean;
   dcPenalty?: number;
+  packBonus?: number;
+  eventTags?: string[];
   onClick: () => void;
 }
 
-export default function ActionCard({ action, stats, traits, hunger, selected, dcPenalty = 0, onClick }: Props) {
+export default function ActionCard({
+  action, stats, traits, hunger, selected, dcPenalty = 0, packBonus = 0, eventTags, onClick,
+}: Props) {
+  const costLevel = getCostLevel(action);
+
+  // 3D 戰鬥：顯示敵人資訊而非成功率
+  if (action.isCombat) {
+    const enemy = ENEMIES[action.enemy || 'rival'];
+    return (
+      <div className={`card action-card combat ${selected ? 'selected' : ''}`} onClick={onClick}>
+        <div className="action-info">
+          <div className="action-label">⚔️ {action.label}</div>
+          <div className="action-desc">{action.description}</div>
+          <div className="action-stat">
+            3D 即時戰鬥｜對手：<b>{enemy?.name ?? '未知'}</b>｜威脅 {action.threatDC}
+            <span className={`cost-tag ${costLevel.className}`}>{costLevel.label}</span>
+          </div>
+        </div>
+        <div className="combat-badge">3D</div>
+      </div>
+    );
+  }
+
   const effectiveStat = getEffectiveStat(stats[action.primaryStat], action.primaryStat, traits, hunger);
   const dc = action.dc + dcPenalty;
-  const successRate = calculateSuccessRate(effectiveStat, dc, traits, action.primaryStat);
-  const costLevel = getCostLevel(action);
+  const condition = getActionCondition(action.tags, eventTags);
+  const successRate = calculateSuccessRate(effectiveStat, dc, traits, action.primaryStat, condition, packBonus);
 
   const ringColor = successRate >= 70 ? '#27ae60' : successRate >= 40 ? '#f39c12' : '#e74c3c';
   const circumference = 2 * Math.PI * 19;
   const strokeDash = (successRate / 100) * circumference;
+  const req = action.requires;
 
   return (
     <div className={`card action-card ${selected ? 'selected' : ''}`} onClick={onClick}>
       <div className="action-info">
         <div className="action-label">
           {action.label}
-          {action.isCombat && ' [戰鬥]'}
+          {req?.minPack && <span className="req-tag">🦕 族群</span>}
+          {req?.mate && <span className="req-tag">💕 伴侶</span>}
+          {action.tags?.includes('rest') && <span className="req-tag rest">休養</span>}
+          {action.tags?.includes('study') && <span className="req-tag study">📖</span>}
         </div>
         <div className="action-desc">{action.description}</div>
         <div className="action-stat">
