@@ -118,6 +118,7 @@ export class ArenaGame {
     state: 'countdown' as EnemyState, t: 0, dur: 2.4,
     move: 'lunge' as EnemyMove, danger: [] as number[], impactDone: false,
     secondStrike: false, laneTimer: 0, enraged: false, flash: 0, flashColor: 0xffffff, missed: false,
+    stunStreak: 0, lastStunAt: -99, stunImmuneUntil: 0,
   };
 
   // 統計
@@ -131,7 +132,7 @@ export class ArenaGame {
   // 物種/詞條修正
   private mods = {
     biteMult: 1, chargeMult: 1, biteSpeed: 1, comboFactor: 1, dmgTaken: 1,
-    vulnMult: 1.5, iframe: 0.24, perfect: 0.2, regen: 1, dmgMult: 1, flatReduce: 0,
+    vulnMult: 1.3, iframe: 0.24, perfect: 0.2, regen: 1, dmgMult: 1, flatReduce: 0,
   };
 
   constructor(
@@ -554,10 +555,10 @@ export class ArenaGame {
 
   private startCharge() {
     if (this.busy() || this.p.action === 'bite') return;
-    if (!this.spend(32)) return;
+    if (!this.spend(40)) return;
     this.p.action = 'charge_wind';
     this.p.actionT = 0;
-    this.p.actionDur = 0.2;
+    this.p.actionDur = 0.3;
     this.p.actionHit = false;
   }
 
@@ -723,6 +724,13 @@ export class ArenaGame {
 
   private stunEnemy(sec: number) {
     if (this.e.state === 'dead') return;
+    if (this.time < this.e.stunImmuneUntil) return;
+    if (this.time - this.e.lastStunAt > 4) this.e.stunStreak = 0;
+    const scale = [1, 0.6, 0.35][Math.min(2, this.e.stunStreak)];
+    this.e.stunStreak++;
+    sec *= scale;
+    this.e.lastStunAt = this.time;
+    this.e.stunImmuneUntil = this.time + sec + 1.5;
     this.e.state = 'stunned';
     this.e.t = 0;
     this.e.dur = sec;
@@ -971,7 +979,7 @@ export class ArenaGame {
           const hit = this.tryHit('charge');
           p.action = hit ? 'charge_ret' : 'recover';
           p.actionT = 0;
-          p.actionDur = hit ? 0.3 : 0.45;
+          p.actionDur = hit ? 0.3 : 0.85;
           if (!hit) this.floatText(this.playerPos(2.4), '撲空！', 'ft-warn');
         }
         break;
@@ -1017,8 +1025,6 @@ export class ArenaGame {
           this.stats.interrupts++;
           this.floatText(this.enemyPos().add(new THREE.Vector3(0, 1, 0)), '打斷！', 'ft-big');
           this.stunEnemy(1.1);
-        } else if (e.state !== 'attack') {
-          this.stunEnemy(0.5);
         }
       }
       this.shake(0.9);

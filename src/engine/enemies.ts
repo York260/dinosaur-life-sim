@@ -120,7 +120,7 @@ export const ENEMIES: Record<string, EnemyTemplate> = {
 
 export function buildEnemyProfile(enemyId: string | undefined, threatDC: number): EnemyProfile {
   const t = ENEMIES[enemyId || 'rival'] || ENEMIES.rival;
-  const maxHp = Math.round((60 + threatDC * 5) * t.hpMult);
+  const maxHp = Math.round((230 + threatDC * 15) * t.hpMult);
   const damage = Math.round((5 + threatDC * 0.9) * t.dmgMult);
   return { ...t, maxHp, damage };
 }
