@@ -204,9 +204,27 @@
   justify-content: space-between;
   align-items: center;
   gap: 0.5rem;
+  flex-wrap: wrap;
   font-size: 0.72rem;
   color: var(--lr-ink-2);
   letter-spacing: 0.04em;
+}
+
+.lr-portrait-actions {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.lr-portrait-actions button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.lr-card-error {
+  font-size: 0.75rem;
+  color: var(--lr-seal);
+  margin-top: 0.3rem;
 }
 
 .lr-id {

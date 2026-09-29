@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { GameState, ChronicleEntry, StatKey } from '../engine/types';
 import { buildLifeReport, reportToText } from '../engine/report';
 import { renderPortrait } from '../combat/portrait';
+import { renderShareCard } from '../combat/shareCard';
 import './LifeReport.css';
 
 interface Props {
@@ -74,6 +75,8 @@ export default function LifeReport({ state, onClose }: Props) {
   const [portraitError, setPortraitError] = useState(false);
   const [onlyMajor, setOnlyMajor] = useState(true);
   const [copied, setCopied] = useState<'idle' | 'ok' | 'manual'>('idle');
+  const [cardBusy, setCardBusy] = useState<'download' | 'share' | null>(null);
+  const [cardError, setCardError] = useState(false);
   const textRef = useRef<HTMLTextAreaElement>(null);
   const text = useMemo(() => reportToText(report), [report]);
 
@@ -119,6 +122,65 @@ export default function LifeReport({ state, onClose }: Props) {
     navigator.clipboard.writeText(text).then(() => setCopied('ok'), manual);
   };
 
+  // 用 blob object URL 而非原始 data URL 觸發下載——多數瀏覽器對 blob URL 的
+  // download 檔名支援比較可靠，data URL 常常會被存成單純的「download」。
+  const triggerDownload = async (dataUrl: string) => {
+    const blob = await (await fetch(dataUrl)).blob();
+    const objectUrl = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = objectUrl;
+    a.download = `${report.catalogNo}-${report.name}.png`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(objectUrl), 10000);
+  };
+
+  const handleDownload = async () => {
+    if (!portrait || cardBusy) return;
+    setCardBusy('download');
+    setCardError(false);
+    try {
+      await triggerDownload(await renderShareCard(report, portrait));
+    } catch (err) {
+      console.error(err);
+      setCardError(true);
+    } finally {
+      setCardBusy(null);
+    }
+  };
+
+  const handleShare = async () => {
+    if (!portrait || cardBusy) return;
+    setCardBusy('share');
+    setCardError(false);
+    try {
+      const url = await renderShareCard(report, portrait);
+      const nav = navigator as Navigator & { canShare?: (data: { files?: File[] }) => boolean };
+      if (nav.share && nav.canShare) {
+        const blob = await (await fetch(url)).blob();
+        const file = new File([blob], `${report.catalogNo}.png`, { type: 'image/png' });
+        const shareData = {
+          files: [file],
+          title: `${report.speciesName}「${report.name}」的生涯報告`,
+          text: report.epitaph,
+        };
+        if (nav.canShare(shareData)) {
+          await nav.share(shareData);
+          return;
+        }
+      }
+      await triggerDownload(url);
+    } catch (err) {
+      if ((err as Error)?.name !== 'AbortError') {
+        console.error(err);
+        setCardError(true);
+      }
+    } finally {
+      setCardBusy(null);
+    }
+  };
+
   const years = groupByYear(report.chronicle);
   const lastYear = years.length ? years[years.length - 1][0] : 0;
 
@@ -154,9 +216,18 @@ export default function LifeReport({ state, onClose }: Props) {
             <figcaption>
               <span>{report.tone === 'dead' ? '化石復原圖' : '生態復原圖'}・依據本局資料生成</span>
               {!portraitError && (
-                <button type="button" onClick={() => setVariant(v => v + 1)}>換個姿勢</button>
+                <div className="lr-portrait-actions">
+                  <button type="button" onClick={() => setVariant(v => v + 1)}>換個姿勢</button>
+                  <button type="button" onClick={handleDownload} disabled={!portrait || !!cardBusy}>
+                    {cardBusy === 'download' ? '產生中…' : '📥 下載圖片'}
+                  </button>
+                  <button type="button" onClick={handleShare} disabled={!portrait || !!cardBusy}>
+                    {cardBusy === 'share' ? '準備中…' : '🔗 分享'}
+                  </button>
+                </div>
               )}
             </figcaption>
+            {cardError && <div className="lr-card-error">圖片產生失敗，請再試一次。</div>}
           </figure>
 
           <div className="lr-id">
