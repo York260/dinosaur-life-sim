@@ -1,7 +1,6 @@
-import { lazy, Suspense, useState } from 'react';
+import { useState } from 'react';
 import { GameState } from '../engine/types';
-
-const LifeReport = lazy(() => import('./LifeReport'));
+import ReportOverlay from './ReportOverlay';
 
 interface Props {
   cause: string;
@@ -42,11 +41,7 @@ export default function GameOver({ cause, year, speciesName, state, onRestart }:
       <button className="restart-btn" onClick={onRestart}>
         重新開始
       </button>
-      {showReport && (
-        <Suspense fallback={null}>
-          <LifeReport state={state} onClose={() => setShowReport(false)} />
-        </Suspense>
-      )}
+      {showReport && <ReportOverlay state={state} onClose={() => setShowReport(false)} />}
     </div>
   );
 }

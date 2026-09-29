@@ -16,10 +16,13 @@ import { getRandomBgColor } from './theme/colors';
 import { randomDinoName, randomMateName } from './engine/names';
 import { ENEMIES } from './engine/enemies';
 import { ChronicleEntry, GameEvent, YearResolution } from './engine/types';
+import { saveCurrentRun, loadCurrentRun, archiveRun, loadArchive, deleteArchiveEntry, ArchiveEntry, clearCurrentRun } from './engine/save';
 import SpeciesSelect from './components/SpeciesSelect';
 import GameBoard from './components/GameBoard';
 import EndGame from './components/EndGame';
 import GameOver from './components/GameOver';
+import ReportOverlay from './components/ReportOverlay';
+import ErrorBoundary from './components/ErrorBoundary';
 
 // ========== Initial State ==========
 
@@ -391,12 +394,37 @@ const KONAMI = ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 'ArrowLeft', 'Ar
 // ========== App ==========
 
 export default function App() {
-  const [state, dispatch] = useReducer(gameReducer, INITIAL_STATE);
+  const [state, dispatch] = useReducer(gameReducer, INITIAL_STATE, initial => {
+    const saved = loadCurrentRun();
+    return saved ?? initial;
+  });
   const [toasts, setToasts] = useState<{ id: number; text: string }[]>([]);
   const [secretUnlocked, setSecret] = useState(isSecretUnlocked());
   const [showAchievements, setShowAchievements] = useState(false);
+  const [showArchive, setShowArchive] = useState(false);
+  const [archive, setArchive] = useState<ArchiveEntry[]>(() => loadArchive());
+  const [openArchived, setOpenArchived] = useState<ArchiveEntry | null>(null);
   const toastId = useRef(0);
   const konamiIdx = useRef(0);
+  const archivedThisRun = useRef(false);
+
+  // 自動存檔：每次狀態變化都寫入 localStorage，離開太久、重新整理、
+  // 分頁被系統回收後回來，都能接續原本的進度。
+  useEffect(() => {
+    saveCurrentRun(state);
+  }, [state]);
+
+  // 結局或死亡的當下，把這一局封存進歷代生涯檔案庫（一局只封存一次）
+  useEffect(() => {
+    if ((state.phase === 'RESULT' || state.phase === 'GAME_OVER') && !archivedThisRun.current) {
+      archivedThisRun.current = true;
+      archiveRun(state);
+    } else if (state.phase === 'TITLE' || state.phase === 'SPECIES_SELECT') {
+      archivedThisRun.current = false;
+      setArchive(loadArchive());
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.phase]);
 
   const toast = useCallback((text: string) => {
     toastId.current += 1;
@@ -532,9 +560,14 @@ export default function App() {
         <button className="start-btn" onClick={() => dispatch({ type: 'START_GAME' })}>
           開始遊戲
         </button>
-        <button className="achv-btn" onClick={() => setShowAchievements(v => !v)}>
-          🏆 成就 {unlocked.length}/{ACHIEVEMENTS.length}
-        </button>
+        <div className="title-btn-row">
+          <button className="achv-btn" onClick={() => setShowAchievements(v => !v)}>
+            🏆 成就 {unlocked.length}/{ACHIEVEMENTS.length}
+          </button>
+          <button className="achv-btn" onClick={() => setShowArchive(v => !v)}>
+            🗂️ 生涯檔案庫 {archive.length > 0 ? `(${archive.length})` : ''}
+          </button>
+        </div>
         {showAchievements && (
           <div className="achv-grid card fade-in">
             {ACHIEVEMENTS.map(a => {
@@ -551,9 +584,48 @@ export default function App() {
             })}
           </div>
         )}
+        {showArchive && (
+          <div className="archive-list card fade-in">
+            {archive.length === 0 ? (
+              <div className="archive-empty">還沒有任何一局結束或死亡——你的第一份生涯檔案會出現在這裡。</div>
+            ) : (
+              archive.map(entry => {
+                const s = entry.state;
+                const ended = s.phase === 'RESULT' && s.endgame;
+                const outcome = ended
+                  ? { total_wipe: '☄️ 全軍覆沒', lone_survivor: '🦖 孤獨倖存', pack_survives: '🌅 族群延續', legend: '🌟 傳說結局' }[s.endgame!.ending]
+                  : `💀 第 ${s.year} 年身故`;
+                return (
+                  <div key={entry.id} className="archive-item">
+                    <button className="archive-open" onClick={() => setOpenArchived(entry)}>
+                      <span className="archive-emoji">{s.species?.emoji ?? '🦕'}</span>
+                      <span className="archive-info">
+                        <span className="archive-name">{s.species?.name}「{s.dinoName || '無名者'}」</span>
+                        <span className="archive-meta">
+                          {outcome}　·　{new Date(entry.savedAt).toLocaleDateString('zh-TW')}
+                        </span>
+                      </span>
+                    </button>
+                    <button
+                      className="archive-del"
+                      aria-label="刪除這份檔案"
+                      onClick={() => {
+                        deleteArchiveEntry(entry.id);
+                        setArchive(loadArchive());
+                      }}
+                    >
+                      ✕
+                    </button>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        )}
         <p className="title-hint">
           {secretUnlocked ? '🐔 有什麼東西從未來穿越回來了……' : '🥚 傳說，記得古老密碼的人，能找到一隻迷路的生物。'}
         </p>
+        {openArchived && <ReportOverlay state={openArchived.state} onClose={() => setOpenArchived(null)} />}
       </div>
     );
   } else if (state.phase === 'SPECIES_SELECT') {
@@ -587,9 +659,29 @@ export default function App() {
   }
 
   return (
-    <>
+    <ErrorBoundary
+      fallback={retry => (
+        <div className="crash-screen">
+          <div className="skull">💀</div>
+          <h2>發生了未預期的錯誤</h2>
+          <p>遊戲畫面暫時無法顯示。你已結束的每一局生涯報告都安全地保存在「生涯檔案庫」裡，不會遺失。</p>
+          <div className="crash-actions">
+            <button
+              className="restart-btn"
+              onClick={() => {
+                clearCurrentRun();
+                window.location.reload();
+              }}
+            >
+              放棄這局，回到標題
+            </button>
+            <button className="achv-btn" onClick={retry}>再試一次</button>
+          </div>
+        </div>
+      )}
+    >
       {screen}
       {toastLayer}
-    </>
+    </ErrorBoundary>
   );
 }

@@ -9,10 +9,10 @@ import { endingAchievements, arenaAchievements, unlock, ACHIEVEMENTS } from '../
 import { buildArenaConfig } from '../combat/config';
 import { getEffectiveStat } from '../engine/traits';
 import { rollD20 } from '../engine/dice';
+import ReportOverlay from './ReportOverlay';
 import './EndGame.css';
 
 const CombatArena = lazy(() => import('./CombatArena'));
-const LifeReport = lazy(() => import('./LifeReport'));
 
 type Step = 'intro' | 'choose' | 'quiz' | 'boss' | 'result';
 
@@ -197,7 +197,6 @@ export default function EndGame({ state, onEnding, onRestart, onArenaAchievement
         <div className="eg-final-emoji">{emoji}</div>
         <div className={`eg-rank rank-${s.rank}`}>{s.rank}</div>
         <h2>{s.title}</h2>
-        <button className="report-btn" onClick={() => setShowReport(true)}>📜 生成生涯報告</button>
         <div className="eg-card eg-narrative">{s.narrative}</div>
         <div className="eg-final-stats">
           <div><b>{state.year - 1}</b><span>存活年數</span></div>
@@ -226,11 +225,7 @@ export default function EndGame({ state, onEnding, onRestart, onArenaAchievement
         )}
         <button className="report-btn" onClick={() => setShowReport(true)}>📜 生成生涯報告</button>
         <button className="eg-btn" onClick={onRestart}>再來一局</button>
-        {showReport && (
-          <Suspense fallback={null}>
-            <LifeReport state={state} onClose={() => setShowReport(false)} />
-          </Suspense>
-        )}
+        {showReport && <ReportOverlay state={state} onClose={() => setShowReport(false)} />}
       </div>
     );
   }
