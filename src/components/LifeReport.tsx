@@ -4,6 +4,7 @@ import { GameState, ChronicleEntry, StatKey } from '../engine/types';
 import { buildLifeReport, reportToText } from '../engine/report';
 import { renderPortrait } from '../combat/portrait';
 import { renderShareCard } from '../combat/shareCard';
+import { captureFullReport, canvasToBlob } from '../combat/fullReport';
 import './LifeReport.css';
 
 interface Props {
@@ -77,7 +78,10 @@ export default function LifeReport({ state, onClose }: Props) {
   const [copied, setCopied] = useState<'idle' | 'ok' | 'manual'>('idle');
   const [cardBusy, setCardBusy] = useState<'download' | 'share' | null>(null);
   const [cardError, setCardError] = useState(false);
+  const [cardNote, setCardNote] = useState<string | null>(null);
+  const [capturing, setCapturing] = useState(false);
   const textRef = useRef<HTMLTextAreaElement>(null);
+  const sheetRef = useRef<HTMLDivElement>(null);
   const text = useMemo(() => reportToText(report), [report]);
 
   useEffect(() => {
@@ -122,26 +126,64 @@ export default function LifeReport({ state, onClose }: Props) {
     navigator.clipboard.writeText(text).then(() => setCopied('ok'), manual);
   };
 
-  // 用 blob object URL 而非原始 data URL 觸發下載——多數瀏覽器對 blob URL 的
-  // download 檔名支援比較可靠，data URL 常常會被存成單純的「download」。
-  const triggerDownload = async (dataUrl: string) => {
-    const blob = await (await fetch(dataUrl)).blob();
+  // 等 React 真的把「擷取模式」（隱藏按鈕等互動元件）畫到畫面上，再開始截圖
+  const waitFrame = () => new Promise<void>(r => requestAnimationFrame(() => requestAnimationFrame(() => r())));
+
+  const pageFileName = (index: number, total: number) =>
+    total > 1
+      ? `${report.catalogNo}-${report.name}-第${index + 1}張共${total}張.png`
+      : `${report.catalogNo}-${report.name}.png`;
+
+  const downloadBlob = (blob: Blob, filename: string) => {
     const objectUrl = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = objectUrl;
-    a.download = `${report.catalogNo}-${report.name}.png`;
+    a.download = filename;
     document.body.appendChild(a);
     a.click();
     a.remove();
     setTimeout(() => URL.revokeObjectURL(objectUrl), 10000);
   };
 
+  /** 完整報告可能被切成好幾張圖；依序觸發多次下載，之間留一點間隔避免被瀏覽器擋下 */
+  const downloadPages = async (blobs: Blob[]) => {
+    for (let i = 0; i < blobs.length; i++) {
+      downloadBlob(blobs[i], pageFileName(i, blobs.length));
+      if (i < blobs.length - 1) await new Promise(r => setTimeout(r, 400));
+    }
+  };
+
+  /** 完整報告截圖失敗時的退路：改用精簡的單張分享卡 */
+  const fallbackCardBlob = async (): Promise<Blob> => {
+    if (!portrait) throw new Error('肖像尚未準備好');
+    const url = await renderShareCard(report, portrait);
+    return (await fetch(url)).blob();
+  };
+
+  const captureBlobs = async (): Promise<Blob[]> => {
+    if (!sheetRef.current) return [await fallbackCardBlob()];
+    setCapturing(true);
+    await waitFrame();
+    try {
+      const pages = await captureFullReport(sheetRef.current);
+      return Promise.all(pages.map(p => canvasToBlob(p.canvas)));
+    } catch (err) {
+      console.error('完整報告截圖失敗，改用精簡分享卡', err);
+      return [await fallbackCardBlob()];
+    } finally {
+      setCapturing(false);
+    }
+  };
+
   const handleDownload = async () => {
-    if (!portrait || cardBusy) return;
+    if (cardBusy) return;
     setCardBusy('download');
     setCardError(false);
+    setCardNote(null);
     try {
-      await triggerDownload(await renderShareCard(report, portrait));
+      const blobs = await captureBlobs();
+      await downloadPages(blobs);
+      setCardNote(blobs.length > 1 ? `報告較長，已分成 ${blobs.length} 張圖片下載。` : null);
     } catch (err) {
       console.error(err);
       setCardError(true);
@@ -151,26 +193,25 @@ export default function LifeReport({ state, onClose }: Props) {
   };
 
   const handleShare = async () => {
-    if (!portrait || cardBusy) return;
+    if (cardBusy) return;
     setCardBusy('share');
     setCardError(false);
+    setCardNote(null);
     try {
-      const url = await renderShareCard(report, portrait);
+      const blobs = await captureBlobs();
+      const files = blobs.map((b, i) => new File([b], pageFileName(i, blobs.length), { type: 'image/png' }));
       const nav = navigator as Navigator & { canShare?: (data: { files?: File[] }) => boolean };
-      if (nav.share && nav.canShare) {
-        const blob = await (await fetch(url)).blob();
-        const file = new File([blob], `${report.catalogNo}.png`, { type: 'image/png' });
-        const shareData = {
-          files: [file],
-          title: `${report.speciesName}「${report.name}」的生涯報告`,
-          text: report.epitaph,
-        };
-        if (nav.canShare(shareData)) {
-          await nav.share(shareData);
-          return;
-        }
+      const shareData = {
+        files,
+        title: `${report.speciesName}「${report.name}」的生涯報告`,
+        text: report.epitaph,
+      };
+      if (nav.share && nav.canShare && nav.canShare(shareData)) {
+        await nav.share(shareData);
+        return;
       }
-      await triggerDownload(url);
+      await downloadPages(blobs);
+      setCardNote(blobs.length > 1 ? `裝置不支援分享多張圖片，已改為分成 ${blobs.length} 張下載。` : '裝置不支援直接分享，已改為下載圖片。');
     } catch (err) {
       if ((err as Error)?.name !== 'AbortError') {
         console.error(err);
@@ -186,7 +227,7 @@ export default function LifeReport({ state, onClose }: Props) {
 
   return createPortal(
     <div className="lr-backdrop" role="dialog" aria-modal="true" aria-label="生涯報告">
-      <div className="lr-sheet fade-in">
+      <div ref={sheetRef} className={`lr-sheet fade-in ${capturing ? 'capturing' : ''}`}>
         <header className="lr-top">
           <div className="lr-org">
             <span className="lr-org-mark">KPG</span>
@@ -194,9 +235,18 @@ export default function LifeReport({ state, onClose }: Props) {
           </div>
           <div className="lr-tools">
             <button type="button" onClick={copy}>{copied === 'ok' ? '已複製' : '複製文字版'}</button>
+            <button type="button" onClick={handleDownload} disabled={!!cardBusy}>
+              {cardBusy === 'download' ? '產生圖片中…' : '📥 下載完整報告'}
+            </button>
+            <button type="button" onClick={handleShare} disabled={!!cardBusy}>
+              {cardBusy === 'share' ? '準備中…' : '🔗 分享完整報告'}
+            </button>
             <button type="button" className="lr-close" onClick={onClose} aria-label="關閉報告">✕</button>
           </div>
         </header>
+
+        {cardError && <div className="lr-card-error">圖片產生失敗，請再試一次。</div>}
+        {cardNote && <div className="lr-card-note">{cardNote}</div>}
 
         {copied === 'manual' && (
           <div className="lr-manual">
@@ -216,18 +266,9 @@ export default function LifeReport({ state, onClose }: Props) {
             <figcaption>
               <span>{report.tone === 'dead' ? '化石復原圖' : '生態復原圖'}・依據本局資料生成</span>
               {!portraitError && (
-                <div className="lr-portrait-actions">
-                  <button type="button" onClick={() => setVariant(v => v + 1)}>換個姿勢</button>
-                  <button type="button" onClick={handleDownload} disabled={!portrait || !!cardBusy}>
-                    {cardBusy === 'download' ? '產生中…' : '📥 下載圖片'}
-                  </button>
-                  <button type="button" onClick={handleShare} disabled={!portrait || !!cardBusy}>
-                    {cardBusy === 'share' ? '準備中…' : '🔗 分享'}
-                  </button>
-                </div>
+                <button type="button" onClick={() => setVariant(v => v + 1)}>換個姿勢</button>
               )}
             </figcaption>
-            {cardError && <div className="lr-card-error">圖片產生失敗，請再試一次。</div>}
           </figure>
 
           <div className="lr-id">

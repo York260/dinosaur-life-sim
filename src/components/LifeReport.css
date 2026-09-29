@@ -227,6 +227,21 @@
   margin-top: 0.3rem;
 }
 
+.lr-card-note {
+  font-size: 0.75rem;
+  color: var(--lr-ink-2);
+  margin-top: 0.3rem;
+}
+
+/* 截圖用的「擷取模式」：截圖時暫時隱藏按鈕等互動元件，讓輸出的圖片乾淨、
+   只保留報告內容本身 */
+.lr-sheet.capturing .lr-tools,
+.lr-sheet.capturing .lr-toggle,
+.lr-sheet.capturing .lr-portrait figcaption button,
+.lr-sheet.capturing .lr-epitaph button {
+  display: none !important;
+}
+
 .lr-id {
   display: flex;
   flex-direction: column;
