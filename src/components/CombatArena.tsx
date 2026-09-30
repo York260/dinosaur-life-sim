@@ -144,19 +144,30 @@ export default function CombatArena({ config, title, speciesPassive, onFinish, o
         </div>
         {enemy.fact && !hideFact && <div className="arena-fact">📖 {enemy.fact}</div>}
 
-        <div className="arena-controls">
+        <div className="arena-controls only-kbd">
           <div><kbd>←</kbd><kbd>→</kbd> / <kbd>A</kbd><kbd>D</kbd><span>左右閃避（有無敵時間）</span></div>
           <div><kbd>Space</kbd> / <kbd>J</kbd><span>撕咬（可連擊）</span></div>
-          <div><kbd>↑</kbd> / <kbd>W</kbd><span>向前衝撞（蓄力中命中可「打斷」）</span></div>
+          <div><kbd>↑</kbd> / <kbd>W</kbd><span>向前衝撞</span></div>
           <div><kbd>Q</kbd><span>族群突擊 ×{config.packCalls}</span></div>
           <div><kbd>E</kbd><span>咆哮震懾（依物種/詞條/魅力）</span></div>
           <div><kbd>↓</kbd> / <kbd>S</kbd> 長按<span>撤退</span></div>
         </div>
+        <div className="arena-controls only-touch">
+          <div><kbd>◀</kbd><kbd>▶</kbd><span>左右閃避（有無敵時間）</span></div>
+          <div><kbd>撕咬</kbd><span>穩定輸出，連按有連擊加成</span></div>
+          <div><kbd>衝撞</kbd><span>大傷害，但耗很多耐力（藍條）</span></div>
+          <div><kbd>族群</kbd><span>召喚族群突擊 ×{config.packCalls}</span></div>
+          <div><kbd>咆哮</kbd><span>震懾敵人（依物種/詞條/魅力）</span></div>
+          <div><kbd>撤退</kbd><span>長按脫離戰鬥</span></div>
+        </div>
         <ul className="arena-tips">
-          <li>地面出現<b className="red">紅色預警</b>的跑道就是敵人要攻擊的位置，閃到安全跑道！</li>
-          <li>全場震波無處可躲：在「!」變黃的瞬間閃避，觸發<b className="blue">完美閃避</b>（慢動作＋下一擊必暴擊）。</li>
-          <li>敵人攻擊落空會<b className="gold">露出破綻</b>（發光），此時攻擊傷害大幅提升。</li>
-          <li>戰鬥中受到的傷害會直接扣你的生命值。HP 歸零時，若有族群成員會有一名替你犧牲。</li>
+          <li><b className="red">別太早閃</b>：撲咬類招式在蓄力後段才鎖定你的位置，看到「!」快變黃再閃。</li>
+          <li>衝撞只有撞中<b>蓄力中</b>的敵人才會<b className="blue">打斷並暈眩</b>；打空會有長硬直，很危險。</li>
+          <li>重擊、二連擊的第二下有<b className="gold">霸體</b>，打不斷，只能閃。</li>
+          <li>完美閃避 → 下一擊必暴擊；敵人攻擊落空 → 露出破綻，傷害提高。</li>
+          {enemy.chargeTaken !== undefined && enemy.chargeTaken < 1 && <li>此敵人裝甲厚，衝撞傷害降低，改用<b>撕咬</b>更有效。</li>}
+          {(enemy.evadeCharge ?? 0) > 0 && <li>此敵人動作敏捷，衝撞容易被閃開，用<b>撕咬</b>更穩。</li>}
+          <li>受到的傷害直接扣生命值。HP 歸零時，若有族群成員會有一名替你犧牲。</li>
           {speciesPassive && <li>物種被動：{speciesPassive}</li>}
         </ul>
         <div className="arena-brief-actions">

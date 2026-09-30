@@ -401,6 +401,7 @@ export default function App() {
   const [toasts, setToasts] = useState<{ id: number; text: string }[]>([]);
   const [secretUnlocked, setSecret] = useState(isSecretUnlocked());
   const [showAchievements, setShowAchievements] = useState(false);
+  const [showGuide, setShowGuide] = useState(false);
   const [showArchive, setShowArchive] = useState(false);
   const [archive, setArchive] = useState<ArchiveEntry[]>(() => loadArchive());
   const [openArchived, setOpenArchived] = useState<ArchiveEntry | null>(null);
@@ -561,6 +562,9 @@ export default function App() {
           開始遊戲
         </button>
         <div className="title-btn-row">
+          <button className="achv-btn" onClick={() => setShowGuide(v => !v)}>
+            📖 玩法說明
+          </button>
           <button className="achv-btn" onClick={() => setShowAchievements(v => !v)}>
             🏆 成就 {unlocked.length}/{ACHIEVEMENTS.length}
           </button>
@@ -568,6 +572,19 @@ export default function App() {
             🗂️ 生涯檔案庫 {archive.length > 0 ? `(${archive.length})` : ''}
           </button>
         </div>
+        {showGuide && (
+          <div className="guide-card card fade-in">
+            <h3>玩法說明</h3>
+            <ul>
+              <li><b>目標</b>：活過 25 年，最後撐過小行星撞擊的三重審判，帶著族群活下去。</li>
+              <li><b>每一年</b>：選一個主行動與一個副行動，接著遇到事件，依選擇與屬性（力量、敏捷、智力、魅力）決定結果。</li>
+              <li><b>族群</b>：救助、結盟或繁衍能擴大族群。族群會在戰鬥中支援你，也影響某些事件與最後的結局。</li>
+              <li><b>戰鬥（手機）</b>：點螢幕下方按鈕。◀ ▶ 閃避、撕咬、衝撞、族群、咆哮，撤退要<b>長按</b>。橫向握持手機畫面更大。</li>
+              <li><b>戰鬥（電腦）</b>：A / D 閃避、空白鍵撕咬、W 衝撞、Q 族群、E 咆哮、長按 S 撤退。</li>
+              <li><b>存檔</b>：進度會自動儲存在這台裝置的瀏覽器裡，關掉再開可以接著玩；結束後的生涯報告會收進「生涯檔案庫」。</li>
+            </ul>
+          </div>
+        )}
         {showAchievements && (
           <div className="achv-grid card fade-in">
             {ACHIEVEMENTS.map(a => {

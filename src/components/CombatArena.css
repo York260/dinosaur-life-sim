@@ -486,3 +486,9 @@ kbd {
     opacity: 0.55;
   }
 }
+
+.arena-controls.only-touch { display: none; }
+@media (pointer: coarse) {
+  .arena-controls.only-kbd { display: none; }
+  .arena-controls.only-touch { display: grid; }
+}
