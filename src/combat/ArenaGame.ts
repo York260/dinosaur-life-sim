@@ -118,7 +118,7 @@ export class ArenaGame {
     state: 'countdown' as EnemyState, t: 0, dur: 2.4,
     move: 'lunge' as EnemyMove, danger: [] as number[], impactDone: false,
     secondStrike: false, laneTimer: 0, enraged: false, flash: 0, flashColor: 0xffffff, missed: false,
-    stunStreak: 0, lastStunAt: -99, stunImmuneUntil: 0,
+    stunStreak: 0, lastStunAt: -99, stunImmuneUntil: 0, armored: false, locked: false,
   };
 
   // 統計
@@ -596,9 +596,11 @@ export class ArenaGame {
     this.ring(this.playerPos(0.5), 0xffe08a, 9, 0.6);
     this.jawOpen(this.player, 1);
     if (this.e.state === 'windup' || this.e.state === 'attack') {
-      this.stunEnemy(1.6);
-      this.stats.interrupts++;
-      this.floatText(this.enemyPos(), '震懾！', 'ft-big');
+      if (!this.e.armored) {
+        this.stunEnemy(1.6);
+        this.stats.interrupts++;
+        this.floatText(this.enemyPos(), '震懾！', 'ft-big');
+      } else this.stunEnemy(0);
     } else if (this.e.state !== 'dead') {
       this.stunEnemy(0.9);
       this.floatText(this.enemyPos(), '威嚇！', 'ft-mid');
@@ -724,6 +726,10 @@ export class ArenaGame {
 
   private stunEnemy(sec: number) {
     if (this.e.state === 'dead') return;
+    if (this.e.armored && (this.e.state === 'windup' || this.e.state === 'attack')) {
+      this.floatText(this.enemyPos().add(new THREE.Vector3(0, 1, 0)), '霸體！', 'ft-warn');
+      return;
+    }
     if (this.time < this.e.stunImmuneUntil) return;
     if (this.time - this.e.lastStunAt > 4) this.e.stunStreak = 0;
     const scale = [1, 0.6, 0.35][Math.min(2, this.e.stunStreak)];
@@ -758,6 +764,8 @@ export class ArenaGame {
     e.state = 'windup';
     e.t = 0;
     e.impactDone = false;
+    e.armored = move === 'stomp' || e.secondStrike;
+    e.locked = false;
     const intBonus = 1 + Math.min(0.35, this.cfg.int * 0.004);
     const enrage = e.enraged ? 0.8 : 1;
     e.dur = this.cfg.enemy.windup * intBonus * enrage * (quick ? 0.55 : 1);
@@ -850,6 +858,10 @@ export class ArenaGame {
         break;
       }
       case 'windup': {
+        if (!e.locked && e.t >= e.dur * 0.6 && (e.move === 'lunge' || e.move === 'double')) {
+          e.locked = true;
+          e.danger = [laneOf(this.p.x)];
+        }
         if (e.t >= e.dur) this.beginAttack();
         break;
       }
@@ -1016,7 +1028,7 @@ export class ArenaGame {
       this.damageEnemy(dmg, crit, 'bite', vuln);
       if (this.p.combo >= 3) this.floatText(this.playerPos(3), `${this.p.combo} 連擊`, 'ft-combo');
     } else {
-      const interrupt = e.state === 'windup';
+      const interrupt = e.state === 'windup' && !e.armored;
       const { dmg, crit, vuln } = this.playerDamage((12 + this.cfg.str * 0.55) * this.mods.chargeMult, 'charge');
       this.damageEnemy(dmg, crit, 'charge', vuln);
       if (!this.enemyDead()) {
