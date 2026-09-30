@@ -24,6 +24,7 @@ import GameOver from './components/GameOver';
 import ReportOverlay from './components/ReportOverlay';
 import ErrorBoundary from './components/ErrorBoundary';
 import Tutorial, { tutorialSeen, markTutorialSeen } from './components/Tutorial';
+import TitleScene, { TitleIcons } from './components/TitleScene';
 
 // ========== Initial State ==========
 
@@ -558,90 +559,104 @@ export default function App() {
   if (state.phase === 'TITLE') {
     const unlocked = loadAchievements();
     screen = (
-      <div className="title-screen">
-        <div className="title-dino">🦖</div>
-        <h1>恐龍人生模擬器</h1>
-        <p className="title-tagline">
-          白堊紀末，二十五年後小行星將墜落。<br />
-          帶領你的族群，撐過三重審判。
-        </p>
-        <button
-          className="start-btn"
-          onClick={() => (tutorialSeen() ? dispatch({ type: 'START_GAME' }) : setTutorial({ firstRun: true }))}
-        >
-          開始遊戲
-        </button>
-        <div className="title-btn-row">
-          <button className="achv-btn" onClick={() => setTutorial({ firstRun: false })}>
-            <span>📖</span>玩法
-          </button>
-          <button className={`achv-btn ${showAchievements ? 'active' : ''}`} onClick={() => togglePanel('achv')}>
-            <span>🏆</span>成就 {unlocked.length}/{ACHIEVEMENTS.length}
-          </button>
-          <button className={`achv-btn ${showArchive ? 'active' : ''}`} onClick={() => togglePanel('archive')}>
-            <span>🗂️</span>檔案庫{archive.length > 0 ? ` ${archive.length}` : ''}
+      <TitleScene>
+        <div className="ts-countdown"><span>距離撞擊</span><b>25</b><span>年</span></div>
+        <h1 className="ts-title" aria-label="恐龍人生模擬器">
+          {'恐龍人生模擬器'.split('').map((c, i) => (
+            <span key={i} aria-hidden="true" style={{ '--i': i } as React.CSSProperties}>{c}</span>
+          ))}
+        </h1>
+        <div className="ts-en">DINOLIFE SIMULATOR</div>
+        <div className="ts-spacer" />
+        <div className="ts-start-wrap">
+          <button
+            className="ts-start"
+            onClick={() => (tutorialSeen() ? dispatch({ type: 'START_GAME' }) : setTutorial({ firstRun: true }))}
+          >
+            開始遊戲
           </button>
         </div>
-        {showAchievements && (
-          <div className="achv-grid card fade-in">
-            {ACHIEVEMENTS.map(a => {
-              const got = unlocked.includes(a.id);
-              return (
-                <div key={a.id} className={`achv-item ${got ? 'got' : ''}`}>
-                  <span className="achv-icon">{got || !a.secret ? a.icon : '❔'}</span>
-                  <div>
-                    <div className="achv-name">{got || !a.secret ? a.name : '？？？'}</div>
-                    <div className="achv-desc">{got || !a.secret ? a.desc : '隱藏成就'}</div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-        {showArchive && (
-          <div className="archive-list card fade-in">
-            {archive.length === 0 ? (
-              <div className="archive-empty">還沒有任何一局結束或死亡——你的第一份生涯檔案會出現在這裡。</div>
-            ) : (
-              archive.map(entry => {
-                const s = entry.state;
-                const ended = s.phase === 'RESULT' && s.endgame;
-                const outcome = ended
-                  ? { total_wipe: '☄️ 全軍覆沒', lone_survivor: '🦖 孤獨倖存', pack_survives: '🌅 族群延續', legend: '🌟 傳說結局' }[s.endgame!.ending]
-                  : `💀 第 ${s.year} 年身故`;
-                return (
-                  <div key={entry.id} className="archive-item">
-                    <button className="archive-open" onClick={() => setOpenArchived(entry)}>
-                      <span className="archive-emoji">{s.species?.emoji ?? '🦕'}</span>
-                      <span className="archive-info">
-                        <span className="archive-name">{s.species?.name}「{s.dinoName || '無名者'}」</span>
-                        <span className="archive-meta">
-                          {outcome}　·　{new Date(entry.savedAt).toLocaleDateString('zh-TW')}
-                        </span>
-                      </span>
-                    </button>
-                    <button
-                      className="archive-del"
-                      aria-label="刪除這份檔案"
-                      onClick={() => {
-                        deleteArchiveEntry(entry.id);
-                        setArchive(loadArchive());
-                      }}
-                    >
-                      ✕
-                    </button>
-                  </div>
-                );
-              })
-            )}
-          </div>
-        )}
-        <p className="title-hint">
-          {secretUnlocked ? '🐔 有什麼東西從未來穿越回來了……' : '🥚 傳說，記得古老密碼的人，能找到一隻迷路的生物。'}
+        <div className="ts-row">
+          <button className="ts-slab" onClick={() => setTutorial({ firstRun: false })}>{TitleIcons.guide}玩法</button>
+          <button className={`ts-slab ${showAchievements ? 'active' : ''}`} onClick={() => togglePanel('achv')}>
+            {TitleIcons.achv}成就 {unlocked.length}/{ACHIEVEMENTS.length}
+          </button>
+          <button className={`ts-slab ${showArchive ? 'active' : ''}`} onClick={() => togglePanel('archive')}>
+            {TitleIcons.archive}檔案庫{archive.length > 0 ? ` ${archive.length}` : ''}
+          </button>
+        </div>
+        <p className="ts-foot">
+          {secretUnlocked ? '有什麼東西從未來穿越回來了……' : '傳說，記得古老密碼的人，能找到一隻迷路的生物。'}
         </p>
+        {(showAchievements || showArchive) && (
+          <div className="ts-sheet-backdrop" onClick={() => setTitlePanel(null)}>
+            <div className="ts-sheet" role="dialog" aria-label={showAchievements ? '成就' : '生涯檔案庫'} onClick={e => e.stopPropagation()}>
+              <div className="ts-sheet-head">
+                <span>{showAchievements ? `成就 ${unlocked.length}/${ACHIEVEMENTS.length}` : '生涯檔案庫'}</span>
+                <button onClick={() => setTitlePanel(null)}>關閉</button>
+              </div>
+              <div className="ts-sheet-body">
+                {showAchievements && (
+                <div className="achv-grid card fade-in">
+                  {ACHIEVEMENTS.map(a => {
+                    const got = unlocked.includes(a.id);
+                    return (
+                      <div key={a.id} className={`achv-item ${got ? 'got' : ''}`}>
+                        <span className="achv-icon">{got || !a.secret ? a.icon : '❔'}</span>
+                        <div>
+                          <div className="achv-name">{got || !a.secret ? a.name : '？？？'}</div>
+                          <div className="achv-desc">{got || !a.secret ? a.desc : '隱藏成就'}</div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                )}
+                {showArchive && (
+                <div className="archive-list card fade-in">
+                  {archive.length === 0 ? (
+                    <div className="archive-empty">還沒有任何一局結束或死亡——你的第一份生涯檔案會出現在這裡。</div>
+                  ) : (
+                    archive.map(entry => {
+                      const s = entry.state;
+                      const ended = s.phase === 'RESULT' && s.endgame;
+                      const outcome = ended
+                        ? { total_wipe: '☄️ 全軍覆沒', lone_survivor: '🦖 孤獨倖存', pack_survives: '🌅 族群延續', legend: '🌟 傳說結局' }[s.endgame!.ending]
+                        : `💀 第 ${s.year} 年身故`;
+                      return (
+                        <div key={entry.id} className="archive-item">
+                          <button className="archive-open" onClick={() => setOpenArchived(entry)}>
+                            <span className="archive-emoji">{s.species?.emoji ?? '🦕'}</span>
+                            <span className="archive-info">
+                              <span className="archive-name">{s.species?.name}「{s.dinoName || '無名者'}」</span>
+                              <span className="archive-meta">
+                                {outcome}　·　{new Date(entry.savedAt).toLocaleDateString('zh-TW')}
+                              </span>
+                            </span>
+                          </button>
+                          <button
+                            className="archive-del"
+                            aria-label="刪除這份檔案"
+                            onClick={() => {
+                              deleteArchiveEntry(entry.id);
+                              setArchive(loadArchive());
+                            }}
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
         {tutorial && <Tutorial firstRun={tutorial.firstRun} onClose={closeTutorial} />}
         {openArchived && <ReportOverlay state={openArchived.state} onClose={() => setOpenArchived(null)} />}
-      </div>
+      </TitleScene>
     );
   } else if (state.phase === 'SPECIES_SELECT') {
     screen = <SpeciesSelect onSelect={(sp: Species) => dispatch({ type: 'SELECT_SPECIES', species: sp })} showSecret={secretUnlocked} />;
