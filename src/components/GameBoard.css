@@ -1144,7 +1144,7 @@
 .action-result-badge { font-size: 0.95rem; }
 .dice-vs-label { font-size: 0.95rem; }
 .dice-vs-threshold, .breakdown-roll { font-size: 2.2rem; }
-.result-verdict { font-size: 1.6rem; }
+.result-verdict { font-size: 1.25rem; padding: 0.35rem; }
 .breakdown-narrative { font-size: 1.1rem; line-height: 1.7; }
 .breakdown-note { font-size: 0.95rem; }
 .net-change-item { font-size: 1.02rem; }
