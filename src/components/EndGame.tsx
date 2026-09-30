@@ -275,7 +275,6 @@ export default function EndGame({ state, onEnding, onRestart, onArenaAchievement
             extraCalls: trial2BossCalls(state), hp: run.hp, packSize: run.pack,
           })}
           title={state.flags.ally_rival ? '審判二：迎戰焦土暴君（老友來援！族群突擊 +2）' : '審判二：迎戰焦土暴君'}
-          speciesPassive={state.species?.combatPassive}
           onFinish={onBossEnd}
           onAutoResolve={autoBoss}
         /></Suspense>

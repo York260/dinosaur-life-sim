@@ -6,14 +6,11 @@ import './CombatArena.css';
 interface Props {
   config: ArenaConfig;
   title: string;
-  speciesPassive?: string;
   onFinish: (outcome: ArenaOutcome) => void;
   /** 不想操作時，改用傳統擲骰結算 */
   onAutoResolve?: () => void;
   /** 戰前返回（僅在簡報畫面可用） */
   onCancel?: () => void;
-  /** 事件卡片已顯示過小知識時，簡報不再重複 */
-  hideFact?: boolean;
 }
 
 const KEYMAP: Record<string, ArenaInput> = {
@@ -44,7 +41,7 @@ function Bar({ value, max, cls, label }: { value: number; max: number; cls: stri
   );
 }
 
-export default function CombatArena({ config, title, speciesPassive, onFinish, onAutoResolve, onCancel, hideFact }: Props) {
+export default function CombatArena({ config, title, onFinish, onAutoResolve, onCancel }: Props) {
   const [stage, setStage] = useState<'brief' | 'fight' | 'result'>('brief');
   const [hud, setHud] = useState<ArenaHud | null>(null);
   const [fx, setFx] = useState<{ kind: ArenaFx; id: number } | null>(null);
@@ -133,45 +130,29 @@ export default function CombatArena({ config, title, speciesPassive, onFinish, o
         <div className="arena-brief-tag">{enemy.boss ? '⚠️ BOSS 戰' : '⚔️ 戰鬥'}</div>
         <h3>{title}</h3>
         <div className="arena-brief-enemy">
-          <div>
-            <div className="enemy-name">{enemy.name}</div>
-            <div className="enemy-intro">{enemy.intro}</div>
-          </div>
+          <div className="enemy-name">{enemy.name}</div>
           <div className="enemy-stats">
             <span>❤️ {enemy.maxHp}</span>
             <span>💥 {enemy.damage}/擊</span>
           </div>
         </div>
-        {enemy.fact && !hideFact && <div className="arena-fact">📖 {enemy.fact}</div>}
 
         <div className="arena-controls only-kbd">
-          <div><kbd>←</kbd><kbd>→</kbd> / <kbd>A</kbd><kbd>D</kbd><span>左右閃避（有無敵時間）</span></div>
-          <div><kbd>Space</kbd> / <kbd>J</kbd><span>撕咬（可連擊）</span></div>
-          <div><kbd>↑</kbd> / <kbd>W</kbd><span>向前衝撞</span></div>
-          <div><kbd>Q</kbd><span>族群突擊 ×{config.packCalls}</span></div>
-          <div><kbd>E</kbd><span>咆哮震懾（依物種/詞條/魅力）</span></div>
-          <div><kbd>↓</kbd> / <kbd>S</kbd> 長按<span>撤退</span></div>
-        </div>
-        <div className="arena-controls only-touch">
-          <div><kbd>◀</kbd><kbd>▶</kbd><span>左右閃避（有無敵時間）</span></div>
-          <div><kbd>撕咬</kbd><span>穩定輸出，連按有連擊加成</span></div>
-          <div><kbd>衝撞</kbd><span>大傷害，但耗很多耐力（藍條）</span></div>
-          <div><kbd>族群</kbd><span>召喚族群突擊 ×{config.packCalls}</span></div>
-          <div><kbd>咆哮</kbd><span>震懾敵人（依物種/詞條/魅力）</span></div>
-          <div><kbd>撤退</kbd><span>長按脫離戰鬥</span></div>
+          <div><kbd>A</kbd><kbd>D</kbd><span>閃避</span></div>
+          <div><kbd>空白</kbd><span>撕咬</span></div>
+          <div><kbd>W</kbd><span>衝撞</span></div>
+          <div><kbd>Q</kbd><span>族群</span></div>
+          <div><kbd>E</kbd><span>咆哮</span></div>
+          <div><kbd>S</kbd><span>撤退(長按)</span></div>
         </div>
         <ul className="arena-tips">
-          <li><b className="red">別太早閃</b>：撲咬類招式在蓄力後段才鎖定你的位置，看到「!」快變黃再閃。</li>
-          <li>衝撞只有撞中<b>蓄力中</b>的敵人才會<b className="blue">打斷並暈眩</b>；打空會有長硬直，很危險。</li>
-          <li>重擊、二連擊的第二下有<b className="gold">霸體</b>，打不斷，只能閃。</li>
-          <li>完美閃避 → 下一擊必暴擊；敵人攻擊落空 → 露出破綻，傷害提高。</li>
-          {enemy.chargeTaken !== undefined && enemy.chargeTaken < 1 && <li>此敵人裝甲厚，衝撞傷害降低，改用<b>撕咬</b>更有效。</li>}
-          {(enemy.evadeCharge ?? 0) > 0 && <li>此敵人動作敏捷，衝撞容易被閃開，用<b>撕咬</b>更穩。</li>}
-          <li>受到的傷害直接扣生命值。HP 歸零時，若有族群成員會有一名替你犧牲。</li>
-          {speciesPassive && <li>物種被動：{speciesPassive}</li>}
+          <li>撞「<b>蓄力中</b>」的敵人可打斷</li>
+          <li>看到「!」再閃，太早會被追上</li>
+          {enemy.chargeTaken !== undefined && enemy.chargeTaken < 1 && <li>裝甲厚，用<b>撕咬</b></li>}
+          {(enemy.evadeCharge ?? 0) > 0 && <li>很靈活，用<b>撕咬</b></li>}
         </ul>
         <div className="arena-brief-actions">
-          <button className="arena-start-btn" onClick={() => setStage('fight')}>開始戰鬥（Enter）</button>
+          <button className="arena-start-btn" onClick={() => setStage('fight')}>開始戰鬥</button>
           {onAutoResolve && (
             <button className="arena-auto-btn" onClick={onAutoResolve}>快速擲骰結算</button>
           )}

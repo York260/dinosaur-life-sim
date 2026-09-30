@@ -138,11 +138,9 @@ export default function GameBoard({
             <Suspense fallback={<div className="card">載入 3D 戰場中…</div>}><CombatArena
               config={buildArenaConfig(state, combatAction.enemy, combatAction.threatDC, envForAction(state, combatAction))}
               title={combatAction.label}
-              speciesPassive={species.combatPassive}
               onFinish={onCombatEnd}
               onAutoResolve={onAutoCombat}
               onCancel={onCancelCombat}
-              hideFact={!!state.currentEvent?.fact}
             /></Suspense>
           )}
 

@@ -280,33 +280,3 @@ export function buildLifeReport(state: GameState): LifeReport {
     scientist, specimenNotes, scientistVerdict, epitaph,
   };
 }
-
-export function reportToText(r: LifeReport): string {
-  const lines: string[] = [];
-  lines.push(`【標本生涯檔案 ${r.catalogNo}】`);
-  lines.push(`${r.speciesName}「${r.name}」——${r.epithet}`);
-  lines.push(`${r.outcomeTitle}：${r.outcomeLine}`);
-  lines.push('');
-  lines.push('■ 數據');
-  for (const f of r.figures) lines.push(`・${f.label}：${f.value}${f.note ? `（${f.note}）` : ''}`);
-  lines.push(`・最終屬性：力量 ${r.attributes.str}／敏捷 ${r.attributes.agi}／智力 ${r.attributes.int}／魅力 ${r.attributes.cha}`);
-  lines.push('');
-  lines.push('■ 生涯大事記');
-  for (const c of r.chronicle) lines.push(`${c.year > 25 ? '末日' : `第${c.year}年`}　${c.icon} ${c.text}`);
-  lines.push('');
-  lines.push('■ 情感羈絆');
-  for (const b of r.bonds) lines.push(`${b.icon} ${b.relation}・${b.who}：${b.status}。${b.note}`);
-  lines.push('');
-  lines.push('■ 豐功偉業');
-  for (const f of r.feats) lines.push(`${f.icon} ${f.title}——${f.desc}`);
-  lines.push('');
-  lines.push('■ 他們眼中的你');
-  for (const q of r.quotes) lines.push(`${q.icon} ${q.speaker}（${q.role}）：「${q.quote}」`);
-  lines.push('');
-  lines.push(`■ 鑑定報告｜${r.scientist.name}・${r.scientist.org}`);
-  for (const n of r.specimenNotes) lines.push(`・${n}`);
-  lines.push(`「${r.scientistVerdict}」`);
-  lines.push('');
-  lines.push(`—— ${r.epitaph}`);
-  return lines.join('\n');
-}

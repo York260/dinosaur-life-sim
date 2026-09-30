@@ -144,20 +144,7 @@
   padding: 0.2rem 0.6rem !important;
 }
 
-.lr-manual textarea {
-  width: 100%;
-  font-family: var(--lr-mono);
-  font-size: 0.75rem;
-  background: var(--lr-paper-2);
-  color: var(--lr-ink);
-  border: 1px solid var(--lr-line);
-  padding: 0.5rem;
-}
 
-.lr-manual p {
-  font-size: 0.8rem;
-  color: var(--lr-ink-2);
-}
 
 /* 身分區 */
 .lr-hero {

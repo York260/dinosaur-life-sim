@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { GameState, ChronicleEntry, StatKey } from '../engine/types';
-import { buildLifeReport, reportToText } from '../engine/report';
+import { buildLifeReport } from '../engine/report';
 import { renderPortrait } from '../combat/portrait';
 import { renderShareCard } from '../combat/shareCard';
 import { captureFullReport, canvasToBlob } from '../combat/fullReport';
@@ -75,14 +75,11 @@ export default function LifeReport({ state, onClose }: Props) {
   const [portrait, setPortrait] = useState<string | null>(null);
   const [portraitError, setPortraitError] = useState(false);
   const [onlyMajor, setOnlyMajor] = useState(true);
-  const [copied, setCopied] = useState<'idle' | 'ok' | 'manual'>('idle');
   const [cardBusy, setCardBusy] = useState<'download' | 'share' | null>(null);
   const [cardError, setCardError] = useState(false);
   const [cardNote, setCardNote] = useState<string | null>(null);
   const [capturing, setCapturing] = useState(false);
-  const textRef = useRef<HTMLTextAreaElement>(null);
   const sheetRef = useRef<HTMLDivElement>(null);
-  const text = useMemo(() => reportToText(report), [report]);
 
   useEffect(() => {
     setPortrait(null);
@@ -113,18 +110,6 @@ export default function LifeReport({ state, onClose }: Props) {
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [onClose]);
-
-  const copy = () => {
-    const manual = () => {
-      setCopied('manual');
-      setTimeout(() => textRef.current?.select(), 0);
-    };
-    if (!navigator.clipboard) {
-      manual();
-      return;
-    }
-    navigator.clipboard.writeText(text).then(() => setCopied('ok'), manual);
-  };
 
   // 等 React 真的把「擷取模式」（隱藏按鈕等互動元件）畫到畫面上，再開始截圖
   const waitFrame = () => new Promise<void>(r => requestAnimationFrame(() => requestAnimationFrame(() => r())));
@@ -234,7 +219,6 @@ export default function LifeReport({ state, onClose }: Props) {
             <span>白堊紀末期古生物研究所・標本生涯檔案</span>
           </div>
           <div className="lr-tools">
-            <button type="button" onClick={copy}>{copied === 'ok' ? '已複製' : '複製文字版'}</button>
             <button type="button" onClick={handleDownload} disabled={!!cardBusy}>
               {cardBusy === 'download' ? '產生圖片中…' : '📥 下載完整報告'}
             </button>
@@ -247,13 +231,6 @@ export default function LifeReport({ state, onClose }: Props) {
 
         {cardError && <div className="lr-card-error">圖片產生失敗，請再試一次。</div>}
         {cardNote && <div className="lr-card-note">{cardNote}</div>}
-
-        {copied === 'manual' && (
-          <div className="lr-manual">
-            <p>無法自動複製，請手動選取下方文字後複製：</p>
-            <textarea id="lr-text" ref={textRef} readOnly value={text} rows={8} />
-          </div>
-        )}
 
         {/* ===== 身分 ===== */}
         <section className={`lr-hero tone-${report.tone}`}>

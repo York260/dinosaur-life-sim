@@ -487,8 +487,6 @@ kbd {
   }
 }
 
-.arena-controls.only-touch { display: none; }
-@media (pointer: coarse) {
+@media (pointer: coarse), (hover: none) {
   .arena-controls.only-kbd { display: none; }
-  .arena-controls.only-touch { display: grid; }
 }
