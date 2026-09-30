@@ -104,3 +104,10 @@
   .ts-scene, .ts-walker, .ts-walker svg, .ts-leg, .ts-flash, .ts-lava-flow, .ts-start { animation: none !important; }
   .ts-countdown, .ts-title span, .ts-en, .ts-start-wrap, .ts-row, .ts-foot { animation: none !important; opacity: 1 !important; transform: none !important; }
 }
+
+/* 封面「成就」列表字放大 */
+.ts-sheet-body .achv-grid { grid-template-columns: 1fr; gap: 0.7rem; }
+.ts-sheet-body .achv-item { gap: 0.8rem; }
+.ts-sheet-body .achv-icon { font-size: 2.1rem; }
+.ts-sheet-body .achv-name { font-size: 1.15rem; }
+.ts-sheet-body .achv-desc { font-size: 1rem; line-height: 1.45; }
