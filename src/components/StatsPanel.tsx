@@ -27,7 +27,7 @@ export default function StatsPanel({ stats, traits, hunger }: Props) {
             <div className="stat-value">
               {effective}
               {diff !== 0 && (
-                <span style={{ fontSize: '0.6rem', color: diff > 0 ? '#27ae60' : '#e74c3c', marginLeft: 2 }}>
+                <span style={{ fontSize: '0.75rem', color: diff > 0 ? '#27ae60' : '#e74c3c', marginLeft: 2 }}>
                   ({diff > 0 ? '+' : ''}{diff})
                 </span>
               )}

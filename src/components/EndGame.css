@@ -443,3 +443,29 @@ body:has(.eg-screen) {
     grid-template-columns: repeat(2, 1fr);
   }
 }
+
+/* ===== 手機可讀性：整體放大 ===== */
+.eg-btn { font-size: 1.2rem; }
+.eg-btn.ghost { font-size: 1rem; }
+.eg-data-grid span { font-size: 0.9rem; }
+.eg-data-grid b { font-size: 1.15rem; }
+.eg-note { font-size: 1.02rem; }
+.eg-status span { font-size: 1rem; }
+.eg-header h2 { font-size: 1.6rem; }
+.eg-sub { font-size: 1rem; }
+.eg-key { font-size: 0.95rem; }
+.eg-opt-label { font-size: 1.2rem; }
+.eg-opt-desc { font-size: 1rem; }
+.eg-tag { font-size: 0.85rem; }
+.eg-rate { font-size: 1.3rem; }
+.eg-quiz-prompt { font-size: 1.2rem; }
+.eg-chicken { font-size: 0.95rem; }
+.eg-data-foot { font-size: 0.95rem; }
+.eg-hint { font-size: 1.02rem; }
+.eg-source { font-size: 0.85rem; }
+.eg-verdict { font-size: 1.55rem; }
+.eg-roll { font-size: 1.05rem; }
+.eg-final-stats b { font-size: 1.75rem; }
+.eg-final-stats span { font-size: 0.9rem; }
+.eg-log-item p { font-size: 1.02rem; }
+.eg-fossil { font-size: 1.05rem; }

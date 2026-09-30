@@ -25,8 +25,8 @@ export default function ActionPanel({
     <div className="action-panel slide-up">
       <div>
         <div className="action-section-title">
-          主行動（必選 1）
-          {packBonus > 0 && <span className="pack-bonus-tag">🦕 族群協力 +{packBonus}</span>}
+          選 1 個行動
+          {packBonus > 0 && <span className="pack-bonus-tag">🦕 族群 +{packBonus}</span>}
         </div>
         <div className="action-cards">
           {mainActions.map((a) => (
@@ -46,7 +46,7 @@ export default function ActionPanel({
       </div>
 
       <div>
-        <div className="action-section-title">副行動（可選 0~1）</div>
+        <div className="action-section-title">順便再做（可不選）</div>
         <div className="action-cards">
           {subActions.map((a) => (
             <ActionCard
@@ -70,7 +70,7 @@ export default function ActionPanel({
           disabled={!selectedMain}
           onClick={onConfirm}
         >
-          確認行動
+          出發！
         </button>
       </div>
     </div>

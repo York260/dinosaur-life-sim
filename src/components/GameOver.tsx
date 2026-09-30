@@ -30,11 +30,7 @@ export default function GameOver({ cause, year, speciesName, state, onRestart }:
       <h2>遊戲結束</h2>
       <div className="death-cause">{cause}</div>
       <div className="death-year">
-        你的{speciesName}在第 {year} 年結束了生命
-        {state.year < state.maxYear && `，距離末日還有 ${state.maxYear - state.year} 年`}
-      </div>
-      <div className="death-stats">
-        戰鬥 {state.runStats.fightsWon} 勝 {state.runStats.fightsLost} 敗｜最大族群 {state.runStats.maxPack}｜知識 {state.knowledge}
+        {speciesName}「{state.dinoName}」在第 {year} 年倒下了
       </div>
       <div className="death-tip">💡 {tip}</div>
       <button className="report-btn" onClick={() => setShowReport(true)}>下一頁：生涯報告 →</button>

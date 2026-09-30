@@ -146,7 +146,7 @@ function ActionResultBlock({
         </div>
       </div>}
       {!arena && (breakdown.packBonus ?? 0) > 0 && (
-        <div className="breakdown-note">🦕 族群協力 +{breakdown.packBonus} 已計入門檻</div>
+        <div className="breakdown-note">🦕 族群幫忙 +{breakdown.packBonus}</div>
       )}
 
       {/* Big success/fail result */}
@@ -261,10 +261,10 @@ export default function DiceResult({ resolution, growthRoll, onContinue }: Props
 
       {(resolution.mateGained || resolution.mateLost || resolution.traitRemoved || (resolution.knowledgeGain ?? 0) > 0) && (
         <div className="card life-notes fade-in">
-          {resolution.mateGained && <div>💕 你找到了伴侶！往後資源充足時，族群每年都會壯大。</div>}
-          {resolution.mateLost && <div>💔 你失去了伴侶……（獲得「喪偶之痛」，重新找到伴侶可解除）</div>}
-          {resolution.traitRemoved && <div>✨ 負面詞條已解除！</div>}
-          {(resolution.knowledgeGain ?? 0) > 0 && <div>📖 古生物知識 +{resolution.knowledgeGain}（末日審判時派得上用場）</div>}
+          {resolution.mateGained && <div>💕 找到伴侶了！吃飽喝足時族群會長大</div>}
+          {resolution.mateLost && <div>💔 失去了伴侶……</div>}
+          {resolution.traitRemoved && <div>✨ 壞狀態解除了！</div>}
+          {(resolution.knowledgeGain ?? 0) > 0 && <div>📖 知識 +{resolution.knowledgeGain}</div>}
         </div>
       )}
 
@@ -301,7 +301,7 @@ export default function DiceResult({ resolution, growthRoll, onContinue }: Props
         </div>
         {growthRoll.bonusTrait && (
           <div style={{ fontSize: '0.85rem', color: '#27ae60', fontWeight: 700, padding: '0 0.8rem 0.5rem' }}>
-            大成功額外獲得詞條：{growthRoll.bonusTrait.name}
+            額外獲得：{growthRoll.bonusTrait.name}
           </div>
         )}
       </div>

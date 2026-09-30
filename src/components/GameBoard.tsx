@@ -55,12 +55,12 @@ export default function GameBoard({
               <div className="year-info">第 {year} 年</div>
               <div className="species-info">
                 <span>{species.emoji}</span>
-                <span>{species.name}</span>
+                <span>{species.name}「{state.dinoName}」</span>
               </div>
             </div>
             <div className="header-right">
-              <div className="countdown">末日倒數：{maxYear - year} 年</div>
-              <div className="season-badge" title={season.desc}>{season.emoji} {season.name}{season.short && `・${season.short}`}</div>
+              <div className="countdown">撞擊倒數 {maxYear - year} 年</div>
+              <div className="season-badge" title={season.desc}>{season.emoji} {season.name.replace('之年', '')}{season.short && `・${season.short}`}</div>
             </div>
           </div>
 
@@ -76,9 +76,9 @@ export default function GameBoard({
 
           <div className="card">
             <div className="pack-info">
-              <span>{hasMate ? '💕 有伴侶' : '💔 無伴侶'}</span>
-              <span>🦕 族群：{packSize} 隻</span>
-              <span title="古生物知識：末日審判時可用來排除錯誤答案">📖 知識：{state.knowledge}</span>
+              <span>{hasMate ? '💕 有伴侶' : '💔 單身'}</span>
+              <span>🦕 族群 {packSize}</span>
+              <span title="末日審判時可用來排除錯誤答案">📖 知識 {state.knowledge}</span>
             </div>
             {packSize > 0 && (
               <div className="pack-icons">
@@ -88,7 +88,7 @@ export default function GameBoard({
             )}
             {packSize > 0 && (
               <div className="pack-bonus">
-                判定 +{getPackCheckBonus(packSize)}｜戰鬥突擊 ×{getPackCalls(packSize, traits, species.id)}｜飽食負擔 +{getPackUpkeep(packSize)}
+                成功率 +{getPackCheckBonus(packSize)}｜援軍 ×{getPackCalls(packSize, traits, species.id)}｜多吃 {getPackUpkeep(packSize)}
               </div>
             )}
             {traits.length > 0 && (

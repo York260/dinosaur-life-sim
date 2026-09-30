@@ -43,7 +43,7 @@ export default function ActionCard({
           <div className="action-label">⚔️ {action.label}</div>
           <div className="action-desc">{action.description}</div>
           <div className="action-stat">
-            3D 即時戰鬥｜對手：<b>{enemy?.name ?? '未知'}</b>
+            戰鬥｜<b>{enemy?.name ?? '未知'}</b>
             <span className={`cost-tag ${costLevel.className}`}>{costLevel.label}</span>
           </div>
         </div>
@@ -74,7 +74,7 @@ export default function ActionCard({
         </div>
         <div className="action-desc">{action.description}</div>
         <div className="action-stat">
-          {STAT_LABELS[action.primaryStat]}判定
+          {STAT_LABELS[action.primaryStat]}
           <span className={`cost-tag ${costLevel.className}`}>{costLevel.label}</span>
         </div>
       </div>

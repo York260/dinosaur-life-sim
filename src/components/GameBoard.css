@@ -1114,3 +1114,60 @@
 .game-over-screen .report-btn {
   margin-bottom: 0.8rem;
 }
+
+/* ===== 手機可讀性：整體放大 ===== */
+.game-header .year-info { font-size: 1.6rem; }
+.game-header .countdown { font-size: 1.05rem; }
+.game-header .species-info { font-size: 1.1rem; }
+.season-badge { font-size: 0.95rem; }
+.status-label { font-size: 1rem; min-width: 2.6em; }
+.bar-text { font-size: 0.9rem; }
+.status-warning { font-size: 0.95rem; }
+.stat-item .stat-name { font-size: 0.95rem; }
+.stat-item .stat-value { font-size: 1.7rem; }
+.trait-tag { font-size: 0.95rem; }
+.pack-info { font-size: 1.05rem; }
+.pack-bonus, .pack-bonus-tag { font-size: 0.92rem; }
+.year-notes { font-size: 1.02rem; }
+.event-narrative { font-size: 1.15rem; line-height: 1.75; }
+.rarity-tag { font-size: 0.9rem; }
+.event-fact { font-size: 0.98rem; }
+.fact-toggle { margin-top: 0.7rem; padding: 0.35rem 0.8rem; font-size: 0.95rem; font-weight: 700; color: #7d6608; background: #fbf3d9; border-radius: 99px; }
+.action-section-title { font-size: 1.15rem; }
+.action-card .action-label { font-size: 1.2rem; }
+.action-card .action-desc { font-size: 1rem; }
+.action-card .action-stat { font-size: 0.92rem; }
+.cost-tag, .req-tag { font-size: 0.85rem; }
+.success-ring { font-size: 0.95rem; }
+.confirm-btn { font-size: 1.3rem; padding: 0.9rem 2.6rem; }
+.action-result-title { font-size: 1.15rem; }
+.action-result-badge { font-size: 0.95rem; }
+.dice-vs-label { font-size: 0.95rem; }
+.dice-vs-threshold, .breakdown-roll { font-size: 2.2rem; }
+.result-verdict { font-size: 1.6rem; }
+.breakdown-narrative { font-size: 1.1rem; line-height: 1.7; }
+.breakdown-note { font-size: 0.95rem; }
+.net-change-item { font-size: 1.02rem; }
+.growth-points-inline { font-size: 1.35rem; }
+.arena-summary b { font-size: 1.5rem; }
+.arena-summary span { font-size: 0.85rem; }
+.life-notes { font-size: 1.05rem; }
+.dice-continue-btn { font-size: 1.25rem; }
+.stat-allocation h3 { font-size: 1.35rem; }
+.points-remaining { font-size: 1.1rem; }
+.alloc-row .alloc-label, .alloc-row .alloc-current { font-size: 1.1rem; }
+.alloc-row .alloc-add { font-size: 1.25rem; }
+.game-over-screen .death-cause { font-size: 1.2rem; }
+.game-over-screen .death-year { font-size: 1.05rem; }
+.death-tip { font-size: 1rem; }
+.restart-btn { font-size: 1.2rem; }
+.endgame-header .phase-label { font-size: 1.05rem; }
+.endgame-narrative { font-size: 1.12rem; line-height: 1.75; }
+.endgame-choice .choice-desc { font-size: 1rem; }
+.result-narrative { font-size: 1.12rem; }
+.result-stat .rs-label { font-size: 0.95rem; }
+.result-stat .rs-value { font-size: 1.5rem; }
+.stats-panel { grid-template-columns: repeat(4, 1fr) !important; gap: 0.4rem; }
+.stat-item { padding: 0.45rem 0.2rem; }
+.game-header { flex-direction: row !important; align-items: center !important; justify-content: space-between; gap: 0.6rem; }
+.header-right { align-items: flex-end; gap: 0.35rem; }
