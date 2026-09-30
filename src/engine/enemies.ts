@@ -30,6 +30,11 @@ export interface EnemyTemplate {
   /** 兩次攻擊間的待機秒數 */
   idle: number;
   moves: Partial<Record<EnemyMove, number>>;
+  /** 衝撞／咬受到的傷害倍率（缺省 1） */
+  chargeTaken?: number;
+  biteTaken?: number;
+  /** 衝撞被閃開的機率（缺省 0） */
+  evadeCharge?: number;
   boss?: boolean;
   intro: string;
   fact?: string;
@@ -45,12 +50,14 @@ export const ENEMIES: Record<string, EnemyTemplate> = {
     id: 'small_theropod', name: '小型獸腳類', model: 'raptor', color: 0x8a7a55, accent: 0x5a4a30, scale: 0.8,
     hpMult: 0.6, dmgMult: 0.6, windup: 0.8, recovery: 0.9, idle: 1.1,
     moves: { lunge: 4, double: 1 },
+    evadeCharge: 0.3,
     intro: '一隻瘦小的獸腳類擋住去路，牠看起來和你一樣餓。',
   },
   raptor: {
     id: 'raptor', name: '馳龍獵手', model: 'raptor', color: 0x6d5b8a, accent: 0xd9a441, scale: 0.9,
     hpMult: 0.8, dmgMult: 0.85, windup: 0.6, recovery: 0.7, idle: 0.8,
     moves: { lunge: 3, double: 3 },
+    evadeCharge: 0.35,
     intro: '快速、狡猾、會連續撲咬。注意牠的二段攻擊！',
     fact: '馳龍類後腳第二趾有一枚可以抬起的大鉤爪，可能用來壓制獵物。',
   },
@@ -65,12 +72,14 @@ export const ENEMIES: Record<string, EnemyTemplate> = {
     id: 'ceratops', name: '暴怒的角龍', model: 'ceratops', color: 0x5d6b3a, accent: 0xd8c9a0, scale: 1.1,
     hpMult: 1.3, dmgMult: 1.2, windup: 0.9, recovery: 1.0, idle: 1.1,
     moves: { lunge: 4, stomp: 1 },
+    chargeTaken: 0.7, biteTaken: 1.1,
     intro: '三根尖角對準了你。牠的衝鋒又快又重！',
   },
   hadrosaur: {
     id: 'hadrosaur', name: '埃德蒙頓龍', model: 'hadrosaur', color: 0x7a6a4a, accent: 0xb58d5a, scale: 1.1,
     hpMult: 1.0, dmgMult: 0.8, windup: 1.0, recovery: 1.0, idle: 1.2,
     moves: { sweep: 3, stomp: 2 },
+    chargeTaken: 1.2,
     intro: '體型巨大的鴨嘴龍拚命反抗，粗壯的尾巴橫掃而來。',
     fact: '埃德蒙頓龍的嘴裡有上千顆排列緊密的牙齒，能磨碎堅韌的植物。',
   },
@@ -91,6 +100,7 @@ export const ENEMIES: Record<string, EnemyTemplate> = {
     id: 'ankylo', name: '甲龍', model: 'ankylo', color: 0x6b6450, accent: 0x3c3a30, scale: 1.1,
     hpMult: 1.6, dmgMult: 1.3, windup: 1.0, recovery: 1.1, idle: 1.2,
     moves: { sweep: 4, stomp: 1 },
+    chargeTaken: 0.6, biteTaken: 1.15,
     intro: '全身裝甲的甲龍！小心牠的尾錘橫掃——那可以打碎骨頭。',
     fact: '甲龍的尾錘由融合的骨板構成，研究估計揮擊力量足以擊碎大型掠食者的腿骨。',
   },
@@ -98,6 +108,7 @@ export const ENEMIES: Record<string, EnemyTemplate> = {
     id: 'ptero', name: '風神翼龍', model: 'ptero', color: 0xb7a58a, accent: 0xc0392b, scale: 1.1,
     hpMult: 0.9, dmgMult: 1.0, windup: 0.7, recovery: 0.9, idle: 1.0,
     moves: { lunge: 3, double: 2 },
+    evadeCharge: 0.35,
     intro: '翼展超過 10 公尺的巨型翼龍在地面上大步逼近——牠要把你當點心！',
     fact: '風神翼龍站立時和長頸鹿差不多高。許多學者認為牠們像鸛鳥一樣在地面上捕食小型動物。',
   },

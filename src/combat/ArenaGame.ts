@@ -118,7 +118,7 @@ export class ArenaGame {
     state: 'countdown' as EnemyState, t: 0, dur: 2.4,
     move: 'lunge' as EnemyMove, danger: [] as number[], impactDone: false,
     secondStrike: false, laneTimer: 0, enraged: false, flash: 0, flashColor: 0xffffff, missed: false,
-    stunStreak: 0, lastStunAt: -99, stunImmuneUntil: 0, armored: false, locked: false,
+    stunStreak: 0, lastStunAt: -99, stunImmuneUntil: 0, armored: false, locked: false, phase2: false,
   };
 
   // 統計
@@ -640,6 +640,10 @@ export class ArenaGame {
     this.hitstop = crit ? 0.11 : 0.06;
     if (crit) this.cb.onFx('crit');
 
+    if (this.cfg.enemy.boss && !this.e.phase2 && this.e.hp > 0 && this.e.hp < this.e.maxHp * 0.6) {
+      this.e.phase2 = true;
+      this.showBanner('第二階段！招式變得更凶', 1.4);
+    }
     if (!this.e.enraged && this.e.hp > 0 && this.e.hp < this.e.maxHp * 0.35) {
       this.e.enraged = true;
       this.showBanner(`${this.cfg.enemy.name} 狂暴化！`, 1.2);
@@ -747,7 +751,12 @@ export class ArenaGame {
   // ================= 敵人 AI =================
 
   private pickMove(): EnemyMove {
-    const entries = Object.entries(this.cfg.enemy.moves) as [EnemyMove, number][];
+    const pool: Partial<Record<EnemyMove, number>> = { ...this.cfg.enemy.moves };
+    if (this.e.phase2) {
+      pool.double = (pool.double ?? 0) + 2;
+      pool.stomp = (pool.stomp ?? 0) + 2;
+    }
+    const entries = Object.entries(pool) as [EnemyMove, number][];
     const total = entries.reduce((a, [, w]) => a + w, 0);
     let r = Math.random() * total;
     for (const [m, w] of entries) {
@@ -1024,12 +1033,17 @@ export class ArenaGame {
       this.p.comboTimer = 0.9;
       this.stats.maxCombo = Math.max(this.stats.maxCombo, this.p.combo);
       const comboMult = 1 + 0.12 * Math.min(6, this.p.combo - 1) * this.mods.comboFactor;
-      const { dmg, crit, vuln } = this.playerDamage((6 + this.cfg.str * 0.3) * this.mods.biteMult * comboMult, 'bite');
+      const { dmg, crit, vuln } = this.playerDamage((6 + this.cfg.str * 0.3) * this.mods.biteMult * comboMult * (this.cfg.enemy.biteTaken ?? 1), 'bite');
       this.damageEnemy(dmg, crit, 'bite', vuln);
       if (this.p.combo >= 3) this.floatText(this.playerPos(3), `${this.p.combo} 連擊`, 'ft-combo');
     } else {
+      const evade = this.cfg.enemy.evadeCharge ?? 0;
+      if (evade > 0 && e.state !== 'windup' && e.state !== 'stunned' && Math.random() < evade) {
+        this.floatText(this.enemyPos().add(new THREE.Vector3(0, 1, 0)), '被閃開了！', 'ft-warn');
+        return false;
+      }
       const interrupt = e.state === 'windup' && !e.armored;
-      const { dmg, crit, vuln } = this.playerDamage((12 + this.cfg.str * 0.55) * this.mods.chargeMult, 'charge');
+      const { dmg, crit, vuln } = this.playerDamage((12 + this.cfg.str * 0.55) * this.mods.chargeMult * (this.cfg.enemy.chargeTaken ?? 1), 'charge');
       this.damageEnemy(dmg, crit, 'charge', vuln);
       if (!this.enemyDead()) {
         e.z -= 1.2;
