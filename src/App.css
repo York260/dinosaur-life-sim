@@ -166,11 +166,22 @@ button:disabled {
 }
 
 .achv-btn {
-  margin-top: 0.8rem;
-  background: transparent;
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+  padding: 0.55rem 0.4rem;
+  font-size: 0.85rem;
+  white-space: nowrap;
+  background: rgba(255, 255, 255, 0.6);
   color: #555;
-  border: 1px solid #bbb;
+  border: 1px solid #ccc;
+  border-radius: 10px;
 }
+.achv-btn span { font-size: 1.3rem; line-height: 1; }
+.achv-btn.active { background: #fff; border-color: #4a7c59; color: #2f5d3f; }
 
 .achv-grid {
   margin-top: 1rem;
@@ -218,8 +229,9 @@ button:disabled {
 .title-btn-row {
   display: flex;
   gap: 0.6rem;
-  flex-wrap: wrap;
-  justify-content: center;
+  width: 100%;
+  max-width: 340px;
+  margin-top: 1.4rem;
 }
 
 /* ========== 歷代生涯檔案庫 ========== */
@@ -365,3 +377,29 @@ button:disabled {
 .guide-card li { margin-bottom: 0.4rem; }
 .guide-card ol { margin: 0.4rem 0 0; padding-left: 1.2rem; }
 .guide-card ol li { margin-bottom: 0.3rem; }
+
+.title-screen {
+  background: radial-gradient(ellipse at 50% 20%, #f6f3e6 0%, transparent 65%);
+}
+.title-screen .title-tagline {
+  font-size: 0.95rem;
+  line-height: 1.7;
+  color: #666;
+  margin: 0.3rem 0 1.8rem;
+}
+.title-screen .start-btn {
+  min-width: 240px;
+  font-size: 1.3rem;
+  padding: 0.95rem 2.5rem;
+}
+.title-screen .title-hint {
+  margin-top: 2rem;
+  font-size: 0.75rem;
+  opacity: 0.55;
+}
+
+.title-screen {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}

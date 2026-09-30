@@ -400,9 +400,11 @@ export default function App() {
   });
   const [toasts, setToasts] = useState<{ id: number; text: string }[]>([]);
   const [secretUnlocked, setSecret] = useState(isSecretUnlocked());
-  const [showAchievements, setShowAchievements] = useState(false);
-  const [showGuide, setShowGuide] = useState(false);
-  const [showArchive, setShowArchive] = useState(false);
+  const [titlePanel, setTitlePanel] = useState<'guide' | 'achv' | 'archive' | null>(null);
+  const togglePanel = (p: 'guide' | 'achv' | 'archive') => setTitlePanel(cur => (cur === p ? null : p));
+  const showAchievements = titlePanel === 'achv';
+  const showGuide = titlePanel === 'guide';
+  const showArchive = titlePanel === 'archive';
   const [archive, setArchive] = useState<ArchiveEntry[]>(() => loadArchive());
   const [openArchived, setOpenArchived] = useState<ArchiveEntry | null>(null);
   const toastId = useRef(0);
@@ -553,23 +555,22 @@ export default function App() {
       <div className="title-screen">
         <div className="title-dino">🦖</div>
         <h1>恐龍人生模擬器</h1>
-        <p className="subtitle">DinoLife Simulator</p>
-        <p className="subtitle" style={{ fontSize: '0.9rem', maxWidth: 440, marginBottom: '1.5rem' }}>
-          在白堊紀末期生存、戰鬥、繁衍。二十五年後，一顆直徑十公里的小行星將從天而降——
-          你能帶領族群，撐過三重審判嗎？
+        <p className="title-tagline">
+          白堊紀末，二十五年後小行星將墜落。<br />
+          帶領你的族群，撐過三重審判。
         </p>
         <button className="start-btn" onClick={() => dispatch({ type: 'START_GAME' })}>
           開始遊戲
         </button>
         <div className="title-btn-row">
-          <button className="achv-btn" onClick={() => setShowGuide(v => !v)}>
-            📖 玩法說明
+          <button className={`achv-btn ${showGuide ? 'active' : ''}`} onClick={() => togglePanel('guide')}>
+            <span>📖</span>玩法
           </button>
-          <button className="achv-btn" onClick={() => setShowAchievements(v => !v)}>
-            🏆 成就 {unlocked.length}/{ACHIEVEMENTS.length}
+          <button className={`achv-btn ${showAchievements ? 'active' : ''}`} onClick={() => togglePanel('achv')}>
+            <span>🏆</span>成就 {unlocked.length}/{ACHIEVEMENTS.length}
           </button>
-          <button className="achv-btn" onClick={() => setShowArchive(v => !v)}>
-            🗂️ 生涯檔案庫 {archive.length > 0 ? `(${archive.length})` : ''}
+          <button className={`achv-btn ${showArchive ? 'active' : ''}`} onClick={() => togglePanel('archive')}>
+            <span>🗂️</span>檔案庫{archive.length > 0 ? ` ${archive.length}` : ''}
           </button>
         </div>
         {showGuide && (
