@@ -37,7 +37,7 @@ export default function GameOver({ cause, year, speciesName, state, onRestart }:
         戰鬥 {state.runStats.fightsWon} 勝 {state.runStats.fightsLost} 敗｜最大族群 {state.runStats.maxPack}｜知識 {state.knowledge}
       </div>
       <div className="death-tip">💡 {tip}</div>
-      <button className="report-btn" onClick={() => setShowReport(true)}>📜 生成生涯報告</button>
+      <button className="report-btn" onClick={() => setShowReport(true)}>下一頁：生涯報告 →</button>
       <button className="restart-btn" onClick={onRestart}>
         重新開始
       </button>

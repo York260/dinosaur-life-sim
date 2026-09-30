@@ -223,7 +223,7 @@ export default function EndGame({ state, onEnding, onRestart, onArenaAchievement
             })}
           </div>
         )}
-        <button className="report-btn" onClick={() => setShowReport(true)}>📜 生成生涯報告</button>
+        <button className="report-btn" onClick={() => setShowReport(true)}>下一頁：生涯報告 →</button>
         <button className="eg-btn" onClick={onRestart}>再來一局</button>
         {showReport && <ReportOverlay state={state} onClose={() => setShowReport(false)} />}
       </div>

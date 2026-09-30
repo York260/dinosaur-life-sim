@@ -387,7 +387,7 @@ export default function LifeReport({ state, onClose }: Props) {
 
         <footer className="lr-epitaph">
           <p>{report.epitaph}</p>
-          <button type="button" onClick={onClose}>關閉檔案</button>
+          <button type="button" onClick={onClose}>← 返回結算</button>
         </footer>
       </div>
     </div>,
