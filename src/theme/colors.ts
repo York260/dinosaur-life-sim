@@ -28,11 +28,11 @@ export const SPECIES_COLORS: Record<string, string[]> = {
     'hsl(215, 20%, 84%)',
   ],
   therizinosaurus: [
-    'hsl(58, 18%, 87%)',
-    'hsl(65, 15%, 85%)',
-    'hsl(52, 20%, 86%)',
-    'hsl(70, 16%, 88%)',
-    'hsl(60, 18%, 84%)',
+    'hsl(280, 18%, 87%)',
+    'hsl(300, 15%, 85%)',
+    'hsl(290, 20%, 86%)',
+    'hsl(270, 16%, 88%)',
+    'hsl(295, 18%, 84%)',
   ],
   struthiomimus: [
     'hsl(45, 25%, 88%)',
@@ -54,6 +54,6 @@ export const SPECIES_ACCENT: Record<string, string> = {
   velociraptor: 'hsl(210, 30%, 45%)',
   triceratops: 'hsl(140, 30%, 40%)',
   parasaurolophus: 'hsl(230, 30%, 50%)',
-  therizinosaurus: 'hsl(55, 28%, 40%)',
+  therizinosaurus: 'hsl(280, 25%, 50%)',
   struthiomimus: 'hsl(45, 35%, 45%)',
 };
