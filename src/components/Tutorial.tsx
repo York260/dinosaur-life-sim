@@ -31,7 +31,7 @@ interface Slide {
   body: ReactNode;
 }
 
-const shot = (src: string, alt: string, pins?: ReactNode, maxH = 320) => (
+const shot = (src: string, alt: string, pins?: ReactNode, maxH = 250) => (
   <div className="tut-shot">
     <div className="tut-frame">
       <img src={src} alt={alt} style={{ maxHeight: maxH }} />
@@ -66,7 +66,7 @@ const SLIDES: Slide[] = [
     body: <>每年會遇到一個事件。選 <b>1 個主行動</b>，副行動可選可不選。</>,
   },
   {
-    art: shot(diceImg, '擲骰結果畫面', undefined, 340),
+    art: shot(diceImg, '擲骰結果畫面', undefined, 250),
     title: '擲骰子看運氣',
     body: <>確認後擲骰子，<b>點數達到門檻就成功</b>，成功或失敗會影響生命、飽食和水分。行動卡片上的 % 是成功率。</>,
   },
@@ -93,15 +93,15 @@ const SLIDES: Slide[] = [
     body: <>每個行動會對應一種能力值（力量、敏捷、智力、魅力），<b>該項越高，成功率越高</b>。</>,
   },
   {
-    art: shot(statusImg, '生命、飽食、水分狀態列', undefined, 200),
+    art: shot(statusImg, '生命、飽食、水分狀態列', undefined, 160),
     title: '顧好生命、飽食、水分',
     body: <>每年都會消耗飽食和水分。<b>任何一項歸零就會扣血並變虛弱</b>，能力值也會下降，記得補充。</>,
   },
   {
     art: (
       <div className="tut-shot" style={{ padding: 8, gap: 8 }}>
-        <img src={packImg} alt="族群資訊" style={{ borderRadius: 10 }} />
-        <img src={allocImg} alt="分配屬性點畫面" style={{ borderRadius: 10 }} />
+        <img src={packImg} alt="族群資訊" style={{ borderRadius: 10, maxHeight: 96, width: 'auto' }} />
+        <img src={allocImg} alt="分配屬性點畫面" style={{ borderRadius: 10, maxHeight: 150, width: 'auto' }} />
       </div>
     ),
     title: '族群與成長',
@@ -121,14 +121,14 @@ const SLIDES: Slide[] = [
           <path d="M226 112 C 212 98, 206 92, 196 90" fill="none" stroke="var(--tut-accent)" strokeWidth="3" strokeDasharray="5 4" strokeLinecap="round" />
           <path d="M200 84 L192 90 L201 96" fill="none" stroke="var(--tut-accent)" strokeWidth="3" strokeLinecap="round" />
         </svg>
-        <div className="tut-keys"><span>◀ ▶ 閃避</span><span>撕咬</span><span>衝撞</span><span>撤退(長按)</span></div>
+        <div className="tut-keys"><span>◀ ▶ 閃避</span><span>撕咬</span><span>衝撞</span><span>撤退</span></div>
       </div>
     ),
     title: '戰鬥：紅色跑道別站',
     body: <>敵人蓄力時地上會亮<b>紅色跑道</b>，攻擊前往旁邊閃。<b>撞中「蓄力中」的敵人能打斷牠</b>；撕咬穩定，衝撞打空會有破綻。</>,
   },
   {
-    art: shot(titleBtnImg, '標題畫面上的玩法按鈕', undefined, 260),
+    art: shot(titleBtnImg, '標題畫面上的玩法按鈕', undefined, 220),
     title: '準備好了',
     body: <>進度會<b>自動存檔</b>，關掉再開可接著玩。想複習時，回標題畫面點「<b>玩法</b>」就能再看一次。</>,
   },
