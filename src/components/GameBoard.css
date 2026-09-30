@@ -1180,9 +1180,3 @@ button.trait-tag:hover { transform: none; }
 .trait-desc.positive, .trait-gain.positive { background: #eaf8f0; color: #1e7a45; }
 .trait-desc.negative, .trait-gain.negative { background: #fdeceb; color: #b03a2e; }
 .trait-gain { margin-top: 0.5rem; padding: 0.6rem 0.8rem; border-radius: 10px; font-size: 1.05rem; font-weight: 700; line-height: 1.5; }
-
-/* 手機字體被放大（LINE、系統大字）時不要把兩字標籤拆成兩行 */
-.status-label, .countdown, .season-badge, .year-info, .species-info, .trait-tag { white-space: nowrap; }
-.status-label { flex-shrink: 0; }
-.game-header { flex-wrap: wrap; gap: 0.5rem; }
-.stats-panel { grid-template-columns: repeat(4, minmax(0, 1fr)) !important; }
