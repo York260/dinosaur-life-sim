@@ -137,7 +137,7 @@ const SLIDES: Slide[] = [
 interface Props {
   /** 第一次自動出現時為 true：最後一頁按鈕是「開始遊戲」，否則是「關閉」 */
   firstRun: boolean;
-  /** 看完或略過。startGame 為 true 表示玩家按了「開始遊戲」 */
+  /** 看完或略過。startGame 為 true 表示這是第一次（從「開始遊戲」進來），接著要進遊戲 */
   onClose: (startGame: boolean) => void;
 }
 
@@ -148,24 +148,24 @@ export default function Tutorial({ firstRun, onClose }: Props) {
   const touchX = useRef<number | null>(null);
 
   const go = (to: number) => setI(Math.max(0, Math.min(n - 1, to)));
-  const finish = () => onClose(firstRun && last);
+  const finish = () => onClose(firstRun);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'ArrowLeft') setI(v => Math.max(0, v - 1));
       else if (e.key === 'ArrowRight') setI(v => Math.min(n - 1, v + 1));
-      else if (e.key === 'Escape') onClose(false);
+      else if (e.key === 'Escape') onClose(firstRun);
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [n, onClose]);
+  }, [n, onClose, firstRun]);
 
   return (
     <div className="tut-backdrop" role="dialog" aria-modal="true" aria-label="新手教學">
       <div className="tut-stage">
         <div className="tut-topbar">
           <span>{i + 1} / {n}</span>
-          {!last && <button className="tut-skip" onClick={() => onClose(false)}>略過</button>}
+          {!last && <button className="tut-skip" onClick={() => onClose(firstRun)}>略過</button>}
         </div>
         <div
           className="tut-viewport"

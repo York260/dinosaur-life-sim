@@ -405,8 +405,7 @@ export default function App() {
   const togglePanel = (p: 'achv' | 'archive') => setTitlePanel(cur => (cur === p ? null : p));
   const showAchievements = titlePanel === 'achv';
   const showArchive = titlePanel === 'archive';
-  const [tutorial, setTutorial] = useState<{ firstRun: boolean } | null>(() =>
-    state.phase === 'TITLE' && !tutorialSeen() ? { firstRun: true } : null);
+  const [tutorial, setTutorial] = useState<{ firstRun: boolean } | null>(null);
   const closeTutorial = (startGame: boolean) => {
     markTutorialSeen();
     setTutorial(null);
@@ -566,7 +565,10 @@ export default function App() {
           白堊紀末，二十五年後小行星將墜落。<br />
           帶領你的族群，撐過三重審判。
         </p>
-        <button className="start-btn" onClick={() => dispatch({ type: 'START_GAME' })}>
+        <button
+          className="start-btn"
+          onClick={() => (tutorialSeen() ? dispatch({ type: 'START_GAME' }) : setTutorial({ firstRun: true }))}
+        >
           開始遊戲
         </button>
         <div className="title-btn-row">
