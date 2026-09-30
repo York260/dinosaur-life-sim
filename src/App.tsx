@@ -23,6 +23,7 @@ import EndGame from './components/EndGame';
 import GameOver from './components/GameOver';
 import ReportOverlay from './components/ReportOverlay';
 import ErrorBoundary from './components/ErrorBoundary';
+import Tutorial, { tutorialSeen, markTutorialSeen } from './components/Tutorial';
 
 // ========== Initial State ==========
 
@@ -400,11 +401,17 @@ export default function App() {
   });
   const [toasts, setToasts] = useState<{ id: number; text: string }[]>([]);
   const [secretUnlocked, setSecret] = useState(isSecretUnlocked());
-  const [titlePanel, setTitlePanel] = useState<'guide' | 'achv' | 'archive' | null>(null);
-  const togglePanel = (p: 'guide' | 'achv' | 'archive') => setTitlePanel(cur => (cur === p ? null : p));
+  const [titlePanel, setTitlePanel] = useState<'achv' | 'archive' | null>(null);
+  const togglePanel = (p: 'achv' | 'archive') => setTitlePanel(cur => (cur === p ? null : p));
   const showAchievements = titlePanel === 'achv';
-  const showGuide = titlePanel === 'guide';
   const showArchive = titlePanel === 'archive';
+  const [tutorial, setTutorial] = useState<{ firstRun: boolean } | null>(() =>
+    state.phase === 'TITLE' && !tutorialSeen() ? { firstRun: true } : null);
+  const closeTutorial = (startGame: boolean) => {
+    markTutorialSeen();
+    setTutorial(null);
+    if (startGame) dispatch({ type: 'START_GAME' });
+  };
   const [archive, setArchive] = useState<ArchiveEntry[]>(() => loadArchive());
   const [openArchived, setOpenArchived] = useState<ArchiveEntry | null>(null);
   const toastId = useRef(0);
@@ -563,7 +570,7 @@ export default function App() {
           開始遊戲
         </button>
         <div className="title-btn-row">
-          <button className={`achv-btn ${showGuide ? 'active' : ''}`} onClick={() => togglePanel('guide')}>
+          <button className="achv-btn" onClick={() => setTutorial({ firstRun: false })}>
             <span>📖</span>玩法
           </button>
           <button className={`achv-btn ${showAchievements ? 'active' : ''}`} onClick={() => togglePanel('achv')}>
@@ -573,21 +580,6 @@ export default function App() {
             <span>🗂️</span>檔案庫{archive.length > 0 ? ` ${archive.length}` : ''}
           </button>
         </div>
-        {showGuide && (
-          <div className="guide-card card fade-in">
-            <h3>玩法重點</h3>
-            <ul>
-              <li><b>目標</b>：活過 25 年，撐過最後的三重天災審判。</li>
-              <li><b>每年</b>：看事件 → 選 1 個主行動（副行動可選）→ 擲骰子看運氣，卡片上的 % 是成功率。</li>
-              <li><b>能力值</b>：每個行動會對應一種能力值（力量、敏捷、智力、魅力），該項越高，成功率越高。</li>
-              <li><b>顧好三條狀態</b>：生命、飽食、水分。飽食或水分歸零會扣血並變虛弱，記得吃喝。</li>
-              <li><b>成長</b>：每年擲骰得到屬性點，自己分配。</li>
-              <li><b>族群</b>：越大越容易成功、戰鬥有援軍，但也吃得更多。</li>
-              <li><b>戰鬥</b>：等敵人蓄力再閃；撞中「蓄力中」的敵人能打斷牠。手機點下方按鈕（撤退長按），電腦用 A/D 閃避、空白鍵咬、W 衝撞。</li>
-              <li><b>存檔</b>：自動存在這台裝置，關掉再開可接著玩。</li>
-            </ul>
-          </div>
-        )}
         {showAchievements && (
           <div className="achv-grid card fade-in">
             {ACHIEVEMENTS.map(a => {
@@ -645,6 +637,7 @@ export default function App() {
         <p className="title-hint">
           {secretUnlocked ? '🐔 有什麼東西從未來穿越回來了……' : '🥚 傳說，記得古老密碼的人，能找到一隻迷路的生物。'}
         </p>
+        {tutorial && <Tutorial firstRun={tutorial.firstRun} onClose={closeTutorial} />}
         {openArchived && <ReportOverlay state={openArchived.state} onClose={() => setOpenArchived(null)} />}
       </div>
     );
