@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Species } from '../engine/types';
 import { nameSuggestions } from '../engine/names';
+import BabyDino from './BabyDino';
 import './NamingScreen.css';
 
 type Stage = 'egg' | 'crack' | 'hatched' | 'named';
@@ -74,7 +75,7 @@ export default function NamingScreen({ species, onConfirm, onBack }: Props) {
           {hatched && (
             <span className="nm-baby">
               <span className="nm-shell-left" />
-              <span key={poke} className={`nm-emoji ${poke ? 'poked' : ''}`}>{species.emoji}</span>
+              <span key={poke} className={`nm-emoji ${poke ? 'poked' : ''}`}><BabyDino id={species.id} /></span>
               <span className="nm-shell-right" />
             </span>
           )}

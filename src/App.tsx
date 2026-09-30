@@ -629,7 +629,6 @@ export default function App() {
                       return (
                         <div key={entry.id} className="archive-item">
                           <button className="archive-open" onClick={() => setOpenArchived(entry)}>
-                            <span className="archive-emoji">{s.species?.emoji ?? '🦕'}</span>
                             <span className="archive-info">
                               <span className="archive-name">{s.species?.name}「{s.dinoName || '無名者'}」</span>
                               <span className="archive-meta">

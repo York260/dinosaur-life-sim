@@ -35,7 +35,6 @@ export default function SpeciesSelect({ onSelect, showSecret }: Props) {
             onClick={() => onSelect(sp)}
           >
             <div className="species-header">
-              <span className="species-emoji">{sp.emoji}</span>
               <span className="species-name">{sp.name}</span>
               <span className={`species-diet diet-${sp.diet}`}>{DIET_LABELS[sp.diet]}</span>
             </div>

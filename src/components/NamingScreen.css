@@ -165,3 +165,6 @@
 @media (prefers-reduced-motion: reduce) {
   .nm-egg, .nm-emoji, .nm-shell-left, .nm-shell-right, .nm-hearts i, .nm-bubble { animation: none !important; }
 }
+.nm-emoji { font-size: 0; width: 170px; }
+.nm-emoji .baby-dino { display: block; width: 100%; height: auto; }
+.nm-shell-left, .nm-shell-right { margin: 0 -26px -6px; }

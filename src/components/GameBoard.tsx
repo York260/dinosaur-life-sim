@@ -43,7 +43,6 @@ export default function GameBoard({
 
   const season = SEASONS[state.season];
   const combatAction = state.phase === 'COMBAT' ? state.selectedMainAction : null;
-  const packIcons = Math.min(packSize, 12);
 
   return (
     <div className={`game-board ${state.phase === 'COMBAT' ? 'in-combat' : ''}`}>
@@ -54,7 +53,6 @@ export default function GameBoard({
             <div>
               <div className="year-info">第 {year} 年</div>
               <div className="species-info">
-                <span>{species.emoji}</span>
                 <span>{species.name}「{state.dinoName}」</span>
               </div>
             </div>
@@ -80,12 +78,6 @@ export default function GameBoard({
               <span>🦕 族群 {packSize}</span>
               <span title="末日審判時可用來排除錯誤答案">📖 知識 {state.knowledge}</span>
             </div>
-            {packSize > 0 && (
-              <div className="pack-icons">
-                {Array.from({ length: packIcons }).map((_, i) => <span key={i}>{species.emoji}</span>)}
-                {packSize > packIcons && <span className="pack-more">+{packSize - packIcons}</span>}
-              </div>
-            )}
             {packSize > 0 && (
               <div className="pack-bonus">
                 成功率 +{getPackCheckBonus(packSize)}｜援軍 ×{getPackCalls(packSize, traits, species.id)}｜多吃 {getPackUpkeep(packSize)}
