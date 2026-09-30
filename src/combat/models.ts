@@ -411,7 +411,7 @@ export const SPECIES_MODELS: Record<string, { kind: ModelKind; color: number; ac
   velociraptor: { kind: 'raptor', color: 0x4f7a8f, accent: 0xe07a2e },
   triceratops: { kind: 'ceratops', color: 0x5f8a4a, accent: 0xc8643c },
   parasaurolophus: { kind: 'hadrosaur', color: 0x6a74a8, accent: 0xe0b040 },
-  therizinosaurus: { kind: 'therizino', color: 0x8a6aa0, accent: 0xe8d8b0 },
+  therizinosaurus: { kind: 'therizino', color: 0x8c7e55, accent: 0xe6d6ae },
   struthiomimus: { kind: 'ornitho', color: 0xc0a050, accent: 0x7a4a20 },
   chicken: { kind: 'chicken', color: 0xf5f0e6, accent: 0x2e2e2e },
 };

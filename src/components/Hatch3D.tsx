@@ -130,7 +130,7 @@ export default function Hatch3D({ speciesId, onTap, onHatched, onRoar, celebrate
     const box = new THREE.Box3().setFromObject(rig.root);
     const size = box.getSize(new THREE.Vector3());
     const center = box.getCenter(new THREE.Vector3());
-    const babyScale = 1.3 / Math.max(size.x, size.y, size.z);
+    const babyScale = Math.min(1.3 / Math.max(size.x, size.z), 0.85 / size.y);
     const baby = new THREE.Group();
     rig.root.position.set(-center.x, -box.min.y, -center.z);
     baby.add(rig.root);
@@ -167,7 +167,26 @@ export default function Hatch3D({ speciesId, onTap, onHatched, onRoar, celebrate
 
     // 狀態
     let taps = 0, wobble = 0, hatchT = -1, roarT = 0, jumpT = 0, time = 0, prevCelebrate = false;
-    const topVel = new THREE.Vector3(), topSpin = new THREE.Vector3();
+    type Shard = { m: THREE.Mesh; v: THREE.Vector3; spin: THREE.Vector3; life: number };
+    const shards: Shard[] = [];
+    const shardGeo = new THREE.TetrahedronGeometry(0.1, 0);
+    const burst = () => {
+      egg.visible = false;
+      for (let i = 0; i < 22; i++) {
+        const a = Math.random() * Math.PI * 2;
+        const up = 0.15 + Math.random() * 0.8;
+        const mat = (i % 4 === 0 ? spotMat : shellMat).clone();
+        mat.transparent = true;
+        const m = new THREE.Mesh(shardGeo, mat);
+        const sc = 0.6 + Math.random() * 1.1;
+        m.scale.set(sc, sc * 0.35, sc);
+        m.position.set(Math.cos(a) * EGG_R * 0.8, up * EGG_H, Math.sin(a) * EGG_R * 0.8);
+        m.castShadow = true;
+        scene.add(m);
+        const speed = 1.6 + Math.random() * 1.8;
+        shards.push({ m, v: new THREE.Vector3(Math.cos(a) * speed, 2 + Math.random() * 2.2, Math.sin(a) * speed), spin: new THREE.Vector3(Math.random() * 12, Math.random() * 12, Math.random() * 12), life: 0 });
+      }
+    };
     const raycaster = new THREE.Raycaster();
     const ndc = new THREE.Vector2();
 
@@ -185,9 +204,7 @@ export default function Hatch3D({ speciesId, onTap, onHatched, onRoar, celebrate
       if (taps === TAPS_TO_HATCH - 1) crack.visible = true;
       if (taps >= TAPS_TO_HATCH) {
         hatchT = 0;
-        crack.visible = false;
-        topVel.set(0.9, 3.2, 0.6);
-        topSpin.set(2.5, 0, 3.5);
+        burst();
         baby.visible = true;
       }
     };
@@ -229,19 +246,22 @@ export default function Hatch3D({ speciesId, onTap, onHatched, onRoar, celebrate
       } else {
         hatchT += dt;
         egg.rotation.set(0, 0, 0);
-        // 蛋殼上半部飛走，下半部留著、慢慢縮進窩裡
-        top.position.addScaledVector(topVel, dt);
-        topVel.y -= 9.8 * dt;
-        top.rotation.x += topSpin.x * dt;
-        top.rotation.z += topSpin.z * dt;
-        if (top.position.y < -2) top.visible = false;
-        const sink = Math.min(1, Math.max(0, (hatchT - 0.8) / 0.8));
-        bottom.scale.setScalar(1 - sink * 0.999);
-        // 小恐龍彈出
-        const p = Math.min(1, hatchT / 0.55);
+        for (let i = shards.length - 1; i >= 0; i--) {
+          const sh = shards[i];
+          sh.life += dt;
+          sh.v.y -= 9.8 * dt;
+          sh.m.position.addScaledVector(sh.v, dt);
+          if (sh.m.position.y < 0.02) { sh.m.position.y = 0.02; sh.v.set(sh.v.x * 0.5, Math.abs(sh.v.y) * 0.3, sh.v.z * 0.5); }
+          sh.m.rotation.x += sh.spin.x * dt; sh.m.rotation.y += sh.spin.y * dt; sh.m.rotation.z += sh.spin.z * dt;
+          const fade = Math.max(0, 1 - Math.max(0, sh.life - 0.55) / 0.45);
+          (sh.m.material as THREE.MeshStandardMaterial).opacity = fade;
+          if (fade <= 0) { scene.remove(sh.m); (sh.m.material as THREE.Material).dispose(); shards.splice(i, 1); }
+        }
+        // 小恐龍從碎片中彈出
+        const p = Math.min(1, Math.max(0, (hatchT - 0.08) / 0.45));
         const pop = p < 1 ? 1 + Math.sin(p * Math.PI) * 0.35 - (1 - p) : 1;
         baby.scale.setScalar(babyScale * Math.max(0.0001, pop));
-        if (!hatchedSent && hatchT > 0.5) { hatchedSent = true; cbRef.current.onHatched(); }
+        if (!hatchedSent && hatchT > 0.55) { hatchedSent = true; cbRef.current.onHatched(); }
       }
 
       if (baby.visible) {
