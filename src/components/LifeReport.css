@@ -171,6 +171,12 @@
   .lr-hero {
     grid-template-columns: 1fr;
   }
+  .lr-top {
+    position: static;
+  }
+  .lr-tools {
+    flex-wrap: wrap;
+  }
 }
 
 .lr-portrait {
