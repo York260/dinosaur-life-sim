@@ -86,6 +86,14 @@ function StatChanges({ changes }: { changes?: Partial<Stats> }) {
   );
 }
 
+function TraitGain({ t }: { t: { name: string; description: string; isPositive: boolean } }) {
+  return (
+    <div className={`trait-gain ${t.isPositive ? 'positive' : 'negative'}`}>
+      獲得詞條「{t.name}」：{t.description}
+    </div>
+  );
+}
+
 // Simplified action result block
 function ActionResultBlock({
   breakdown,
@@ -96,7 +104,7 @@ function ActionResultBlock({
   breakdown: ActionBreakdown;
   isSubAction?: boolean;
   traitGained?: { name: string; description: string; isPositive: boolean } | null;
-  extras?: { name: string; isPositive: boolean }[];
+  extras?: { name: string; description: string; isPositive: boolean }[];
 }) {
   const resultColor = RESULT_COLORS[breakdown.checkResult];
   const resultLabel = breakdown.isCombat && breakdown.combatOutcome
@@ -164,17 +172,8 @@ function ActionResultBlock({
         <NetChange label="水分" value={netHydration} />
         <NetChange label="族群" value={breakdown.packChange} />
         <StatChanges changes={breakdown.statChanges} />
-        {traitGained && (
-          <span className={`net-change-item ${traitGained.isPositive ? 'positive' : 'negative'}`}>
-            詞條：{traitGained.name}
-          </span>
-        )}
-        {extras?.map(t => (
-          <span key={t.name} className={`net-change-item ${t.isPositive ? 'positive' : 'negative'}`}>
-            詞條：{t.name}
-          </span>
-        ))}
       </div>
+      {[traitGained, ...(extras ?? [])].map(t => t && <TraitGain key={t.name} t={t} />)}
     </div>
   );
 }
@@ -300,9 +299,7 @@ export default function DiceResult({ resolution, growthRoll, onContinue }: Props
           <span className="growth-points-inline">+{growthRoll.points} 屬性點</span>
         </div>
         {growthRoll.bonusTrait && (
-          <div style={{ fontSize: '0.85rem', color: '#27ae60', fontWeight: 700, padding: '0 0.8rem 0.5rem' }}>
-            額外獲得：{growthRoll.bonusTrait.name}
-          </div>
+          <div style={{ padding: '0 0.8rem 0.5rem' }}><TraitGain t={growthRoll.bonusTrait} /></div>
         )}
       </div>
 

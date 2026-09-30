@@ -1171,3 +1171,12 @@
 .stat-item { padding: 0.45rem 0.2rem; }
 .game-header { flex-direction: row !important; align-items: center !important; justify-content: space-between; gap: 0.6rem; }
 .header-right { align-items: flex-end; gap: 0.35rem; }
+
+/* 詞條：點擊看效果、獲得時顯示效果 */
+button.trait-tag { border: 2px solid transparent; cursor: pointer; font-family: inherit; }
+button.trait-tag:hover { transform: none; }
+.trait-tag.on { border-color: currentColor; }
+.trait-desc { margin-top: 0.5rem; padding: 0.55rem 0.8rem; border-radius: 10px; font-size: 1.02rem; line-height: 1.5; }
+.trait-desc.positive, .trait-gain.positive { background: #eaf8f0; color: #1e7a45; }
+.trait-desc.negative, .trait-gain.negative { background: #fdeceb; color: #b03a2e; }
+.trait-gain { margin-top: 0.5rem; padding: 0.6rem 0.8rem; border-radius: 10px; font-size: 1.05rem; font-weight: 700; line-height: 1.5; }
