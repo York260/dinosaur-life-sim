@@ -315,7 +315,7 @@ export interface RunStats {
 
 export type GameActionType =
   | { type: 'START_GAME' }
-  | { type: 'SELECT_SPECIES'; species: Species }
+  | { type: 'SELECT_SPECIES'; species: Species; name?: string }
   | { type: 'SET_EVENT'; event: GameEvent }
   | { type: 'SELECT_MAIN_ACTION'; action: GameAction }
   | { type: 'SELECT_SUB_ACTION'; action: GameAction | null }

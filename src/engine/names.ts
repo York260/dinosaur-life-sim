@@ -43,8 +43,18 @@ function pick<T>(arr: T[], r: number): T {
   return arr[Math.floor(r * arr.length) % arr.length];
 }
 
+const CUTE_NAMES = ['麻糬', '布丁', '小豆', '咕嚕', '阿胖', '小刺', '糰子', '芝麻', '豆花', '毛毛', '噗噗', '小栗'];
+
 export function randomDinoName(): string {
   return pick(DINO_NAMES, Math.random());
+}
+
+/** 取名畫面用：從酷名字與可愛名字中各抽，回傳不重複的 n 個建議 */
+export function nameSuggestions(n = 3, exclude: string[] = []): string[] {
+  const pool = [...DINO_NAMES, ...CUTE_NAMES].filter(x => !exclude.includes(x));
+  const out: string[] = [];
+  while (out.length < n && pool.length) out.push(pool.splice(Math.floor(Math.random() * pool.length), 1)[0]);
+  return out;
 }
 
 export function randomMateName(): string {

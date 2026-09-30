@@ -25,6 +25,7 @@ import ReportOverlay from './components/ReportOverlay';
 import ErrorBoundary from './components/ErrorBoundary';
 import Tutorial, { tutorialSeen, markTutorialSeen } from './components/Tutorial';
 import TitleScene, { TitleIcons } from './components/TitleScene';
+import NamingScreen from './components/NamingScreen';
 
 // ========== Initial State ==========
 
@@ -144,6 +145,7 @@ function gameReducer(state: GameState, action: GameActionType): GameState {
 
     case 'SELECT_SPECIES': {
       const sp = action.species;
+      const name = action.name?.trim() || randomDinoName();
       const traits = (sp.startTraits ?? []).map(id => getTraitById(id)).filter((t): t is Trait => !!t);
       return {
         ...INITIAL_STATE,
@@ -152,8 +154,8 @@ function gameReducer(state: GameState, action: GameActionType): GameState {
         stats: { ...sp.baseStats },
         traits,
         season: rollSeason(1, INITIAL_STATE.maxYear),
-        dinoName: randomDinoName(),
-        chronicle: [{ year: 1, icon: '🥚', text: `一隻${sp.name}在白堊紀末的森林裡破殼而出`, kind: 'normal' }],
+        dinoName: name,
+        chronicle: [{ year: 1, icon: '🥚', text: `${sp.name}「${name}」在白堊紀末的森林裡破殼而出`, kind: 'normal' }],
         bgColor: getRandomBgColor(sp.id),
         yearNotes: sp.id === 'chicken' ? ['🐔 你睜開眼睛，發現自己在 6600 萬年前的森林裡。咕？'] : [],
       };
@@ -407,6 +409,7 @@ export default function App() {
   const showAchievements = titlePanel === 'achv';
   const showArchive = titlePanel === 'archive';
   const [tutorial, setTutorial] = useState<{ firstRun: boolean } | null>(null);
+  const [naming, setNaming] = useState<Species | null>(null);
   const closeTutorial = (startGame: boolean) => {
     markTutorialSeen();
     setTutorial(null);
@@ -659,7 +662,15 @@ export default function App() {
       </TitleScene>
     );
   } else if (state.phase === 'SPECIES_SELECT') {
-    screen = <SpeciesSelect onSelect={(sp: Species) => dispatch({ type: 'SELECT_SPECIES', species: sp })} showSecret={secretUnlocked} />;
+    screen = naming ? (
+      <NamingScreen
+        species={naming}
+        onBack={() => setNaming(null)}
+        onConfirm={name => { setNaming(null); dispatch({ type: 'SELECT_SPECIES', species: naming, name }); }}
+      />
+    ) : (
+      <SpeciesSelect onSelect={(sp: Species) => setNaming(sp)} showSecret={secretUnlocked} />
+    );
   } else if (state.phase === 'GAME_OVER') {
     screen = (
       <GameOver
