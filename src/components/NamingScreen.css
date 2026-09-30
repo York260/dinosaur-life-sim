@@ -168,3 +168,22 @@
 .nm-emoji { font-size: 0; width: 170px; }
 .nm-emoji .baby-dino { display: block; width: 100%; height: auto; }
 .nm-shell-left, .nm-shell-right { margin: 0 -26px -6px; }
+
+/* ---------- 3D stage ---------- */
+.nm-stage3d { position: relative; width: 100%; max-width: 520px; height: 44vh; min-height: 260px; }
+.h3d { position: absolute; inset: 0; }
+.nm-loading { position: absolute; inset: 0; display: grid; place-items: center; color: #888; font-size: 1.1rem; }
+.nm-bubble3d {
+  position: absolute; left: 0; right: 0; top: 8px; margin: 0 auto; width: fit-content;
+  padding: 0.45rem 1rem; font-size: 1.2rem; font-weight: 800; white-space: nowrap;
+  background: #fff; border-radius: 16px; box-shadow: 0 3px 0 rgba(0, 0, 0, 0.08);
+  animation: nm-pop 0.35s cubic-bezier(0.2, 1.6, 0.4, 1) both; pointer-events: none;
+}
+.nm-bubble3d.happy { color: #c0392b; font-size: 1.45rem; }
+.nm-stage3d .nm-hearts i { bottom: 40%; }
+.nm-tip { display: flex; align-items: center; gap: 0.7rem; margin: 0.4rem 0 0; font-size: 1.15rem; font-weight: 700; color: #6b5a48; }
+.nm-dots { display: inline-flex; gap: 6px; }
+.nm-dots i { width: 12px; height: 12px; border-radius: 50%; background: #d8cfbf; }
+.nm-dots i.on { background: #4a7c59; }
+.nm-sub { margin: -0.4rem 0 0; text-align: center; font-size: 1rem; color: #777; }
+.nm-chip.dice { font-size: 1.05rem; }
