@@ -6,6 +6,15 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@500;700;900&family=Noto+Serif+TC:wght@600;900&display=swap" />
+    <style>html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }</style>
+    <script>
+      // LINE 內建瀏覽器會套用 LINE 的字體大小設定，把字放大；改用手機預設瀏覽器開啟
+      (function () {
+        if (!/\bLine\//i.test(navigator.userAgent) || /openExternalBrowser=/.test(location.search)) return;
+        var q = location.search ? location.search + '&' : '?';
+        location.replace(location.pathname + q + 'openExternalBrowser=1' + location.hash);
+      })();
+    </script>
     <title>恐龍人生模擬器 - DinoLife Simulator</title>
   </head>
   <body>
