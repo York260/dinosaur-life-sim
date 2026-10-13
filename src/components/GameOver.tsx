@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { GameState } from '../engine/types';
 import ReportOverlay from './ReportOverlay';
+import { SITE_NAME, SITE_URL } from '../siteInfo';
 
 interface Props {
   cause: string;
@@ -26,6 +27,7 @@ export default function GameOver({ cause, year, speciesName, state, onRestart }:
   const [showReport, setShowReport] = useState(false);
   return (
     <div className="game-over-screen fade-in">
+      <div className="go-site">{SITE_NAME}・{SITE_URL}</div>
       <div className="skull">💀</div>
       <h2>遊戲結束</h2>
       <div className="death-cause">{cause}</div>
