@@ -1,4 +1,5 @@
 import { LifeReport } from '../engine/report';
+import { SITE_NAME, SITE_URL } from '../siteInfo';
 
 // ==========================================================
 // 生涯報告的「分享卡」：把肖像 + 關鍵數據 + 一句話結語，
@@ -87,6 +88,16 @@ export async function renderShareCard(report: LifeReport, portraitDataUrl: strin
   // ---------- 上半：肖像 ----------
   const img = await loadImage(portraitDataUrl);
   drawCover(ctx, img, 0, 0, W, IMG_H);
+
+  // 肖像左上角的網址浮水印：就算只截上半段，別人也找得到遊戲
+  const mark = `${SITE_NAME}・${SITE_URL}`;
+  ctx.font = `600 26px ${SANS}`;
+  const markW = ctx.measureText(mark).width + 36;
+  ctx.fillStyle = 'rgba(10,8,6,0.5)';
+  ctx.fillRect(24, 24, markW, 48);
+  ctx.fillStyle = 'rgba(255,255,255,0.92)';
+  ctx.textAlign = 'left';
+  ctx.fillText(mark, 42, 57);
 
   // 與下方紙張的過渡陰影
   const seam = ctx.createLinearGradient(0, IMG_H - 60, 0, IMG_H);
@@ -200,7 +211,7 @@ export async function renderShareCard(report: LifeReport, portraitDataUrl: strin
   // ---------- 頁尾 ----------
   ctx.font = `500 20px ${SANS}`;
   ctx.fillStyle = '#4b5752';
-  ctx.fillText('🦖 恐龍人生模擬器・DinoLife Simulator', W / 2, H - 32);
+  ctx.fillText(`${SITE_NAME}・DinoLife Simulator・${SITE_URL}`, W / 2, H - 32);
   ctx.textAlign = 'left';
 
   return canvas.toDataURL('image/png');

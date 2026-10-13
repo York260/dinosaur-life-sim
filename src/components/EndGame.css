@@ -352,6 +352,16 @@ body:has(.eg-screen) {
   color: #ffcf9e;
 }
 
+/* 結局畫面最上方的遊戲名稱與網址：讓截圖帶得走 */
+.eg-site {
+  align-self: center;
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+  color: #ffcf9e;
+  opacity: 0.75;
+  overflow-wrap: anywhere;
+}
+
 .eg-final-emoji {
   font-size: 4.5rem;
   animation: pulse 2s infinite;

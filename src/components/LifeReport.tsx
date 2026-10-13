@@ -5,6 +5,7 @@ import { buildLifeReport } from '../engine/report';
 import { renderPortrait } from '../combat/portrait';
 import { renderShareCard } from '../combat/shareCard';
 import { captureFullReport, canvasToBlob } from '../combat/fullReport';
+import { SITE_NAME, SITE_URL } from '../siteInfo';
 import './LifeReport.css';
 
 interface Props {
@@ -214,9 +215,12 @@ export default function LifeReport({ state, onClose }: Props) {
     <div className="lr-backdrop" role="dialog" aria-modal="true" aria-label="生涯報告">
       <div ref={sheetRef} className={`lr-sheet fade-in ${capturing ? 'capturing' : ''}`}>
         <header className="lr-top">
-          <div className="lr-org">
-            <span className="lr-org-mark">KPG</span>
-            <span>白堊紀末期古生物研究所・標本生涯檔案</span>
+          <div className="lr-org-wrap">
+            <div className="lr-org">
+              <span className="lr-org-mark">KPG</span>
+              <span>白堊紀末期古生物研究所・標本生涯檔案</span>
+            </div>
+            <div className="lr-site">{SITE_NAME}・{SITE_URL}</div>
           </div>
           <div className="lr-tools">
             <button type="button" onClick={handleDownload} disabled={!!cardBusy}>

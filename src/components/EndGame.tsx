@@ -10,6 +10,7 @@ import { buildArenaConfig } from '../combat/config';
 import { getEffectiveStat } from '../engine/traits';
 import { rollD20 } from '../engine/dice';
 import ReportOverlay from './ReportOverlay';
+import { SITE_NAME, SITE_URL } from '../siteInfo';
 import './EndGame.css';
 
 const CombatArena = lazy(() => import('./CombatArena'));
@@ -194,6 +195,7 @@ export default function EndGame({ state, onEnding, onRestart, onArenaAchievement
     const emoji = { total_wipe: '☄️', lone_survivor: '🦖', pack_survives: '🌅', legend: '🌟' }[s.ending];
     return (
       <div className={`eg-screen eg-final ending-${s.ending} fade-in`}>
+        <div className="eg-site">{SITE_NAME}・{SITE_URL}</div>
         <div className="eg-final-emoji">{emoji}</div>
         <div className={`eg-rank rank-${s.rank}`}>{s.rank}</div>
         <h2>{s.title}</h2>

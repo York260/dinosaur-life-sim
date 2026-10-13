@@ -91,6 +91,20 @@
   z-index: 2;
 }
 
+.lr-org-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.lr-site {
+  font-family: var(--lr-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  color: var(--lr-ink-2);
+  overflow-wrap: anywhere;
+}
+
 .lr-org {
   display: flex;
   align-items: center;
