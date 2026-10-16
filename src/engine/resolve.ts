@@ -69,6 +69,12 @@ function preyWater(food: number): number {
   return Math.round(food * 0.7);
 }
 
+function saviorName(state: GameState, arena: ArenaOutcome): string {
+  if (arena.savior === 'mate') return `「${state.mateName ?? '伴侶'}」`;
+  if (arena.savior === 'family') return '你的家人';
+  return '一名族人';
+}
+
 function eff(state: GameState, key: keyof Stats) {
   return getEffectiveStat(state.stats[key], key, state.traits, state.hunger);
 }
@@ -111,7 +117,9 @@ export function resolveYear(state: GameState, arena?: ArenaOutcome): YearOutcome
           acc.narrative += '\n在一次次完美閃避中，你的戰鬥本能覺醒了！（獲得「百戰不殆」）';
         }
       } else if (arena.result === 'death') {
-        gameOverCause = `你在與${arena.enemyName}的戰鬥中倒下了……`;
+        gameOverCause = arena.lastStand === 'stay'
+          ? `你選擇留下，與${saviorName(state, arena)}並肩倒在了${arena.enemyName}面前。`
+          : `你在與${arena.enemyName}的戰鬥中倒下了……`;
         acc.narrative = gameOverCause;
       } else {
         acc.hunger = Math.min(0, r.hungerChange);
@@ -119,7 +127,10 @@ export function resolveYear(state: GameState, arena?: ArenaOutcome): YearOutcome
         applyEffects(acc, state, r, { skipPack: arena.result === 'defeat' });
         if (arena.result === 'defeat') {
           acc.pack -= arena.packLost;
-          acc.narrative = `💀 敗給了${arena.enemyName}。一名族人挺身而出，替你擋下了致命一擊……\n${r.narrative}`;
+          if (arena.savior === 'mate') acc.mateLost = true;
+          acc.narrative = arena.lastStand === 'flee'
+            ? `💔 敗給了${arena.enemyName}。${saviorName(state, arena)}替你擋下了致命一擊，用生命換來你的生路……\n${r.narrative}`
+            : `💀 敗給了${arena.enemyName}。一名族人挺身而出，替你擋下了致命一擊……\n${r.narrative}`;
           if (Math.random() < 0.4) pushTrait(acc, state, getRandomNegativeTrait(state.traits));
         } else {
           acc.narrative = `🏃 你從${arena.enemyName}面前撤退了。`;

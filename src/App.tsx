@@ -120,6 +120,10 @@ function buildChronicle(state: GameState, res: YearResolution, mateName: string 
     });
   }
   if (res.mateGained) out.push({ year: y, icon: '💕', text: `與「${mateName}」結為伴侶`, kind: 'love' });
+  if (arena?.lastStand === 'flee') {
+    const who = arena.savior === 'mate' ? `「${state.mateName ?? '伴侶'}」` : arena.savior === 'family' ? '家人' : '一名族人';
+    out.push({ year: y, icon: '🕯️', text: `${who}替你擋下致命一擊，永遠留在了戰場`, kind: 'danger' });
+  }
   if (res.mateLost) out.push({ year: y, icon: '💔', text: `失去了伴侶「${state.mateName ?? '牠'}」`, kind: 'danger' });
   if (res.packChange > 0) out.push({ year: y, icon: '🦕', text: `族群增加了 ${res.packChange} 名成員`, kind: 'pack' });
   if (res.packChange < 0) out.push({ year: y, icon: '🕯️', text: `失去了 ${-res.packChange} 名族人`, kind: 'danger' });
@@ -211,8 +215,9 @@ function gameReducer(state: GameState, action: GameActionType): GameState {
 
       const packSize = Math.max(0, state.packSize + res.packChange);
       const newFamily = res.packChange > 0 && (res.flagsSet ?? []).some(f => FAMILY_FLAGS.includes(f)) ? res.packChange : 0;
-      const family = Math.min(packSize, (state.family ?? 0) + newFamily);
       const arena = res.mainBreakdown?.arena;
+      const familyLost = arena?.savior === 'family' && arena.result === 'defeat' ? 1 : 0;
+      const family = Math.max(0, Math.min(packSize, (state.family ?? 0) + newFamily - familyLost));
       const runStats = {
         ...state.runStats,
         maxPack: Math.max(state.runStats.maxPack, packSize),

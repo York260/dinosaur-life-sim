@@ -19,6 +19,16 @@ export interface ArenaConfig {
   packCalls: number;
   enemy: EnemyProfile;
   env: ArenaEnv;
+  /** 致命關頭替你擋刀的同伴（伴侶 > 家人 > 族人）；沒有就直接倒下 */
+  savior?: { kind: 'mate' | 'family' | 'pack'; name: string };
+}
+
+export type LastStandChoice = 'stay' | 'flee';
+
+export interface ArenaCine {
+  caption: string;
+  choice: boolean;
+  fade: number;
 }
 
 export type ArenaInput = 'left' | 'right' | 'bite' | 'charge' | 'pack' | 'roar' | 'flee';
@@ -39,6 +49,8 @@ export interface ArenaHud {
   banner: string | null;
   critReady: boolean;
   ended: boolean;
+  /** 擋刀過場動畫進行中 */
+  cine: ArenaCine | null;
 }
 
 interface Callbacks {
@@ -128,6 +140,20 @@ export class ArenaGame {
   private ended = false;
   private endTimer = -1;
   private outcome: ArenaOutcome | null = null;
+
+  // 擋刀過場動畫
+  private cine: null | {
+    phase: 'block' | 'urge' | 'choice' | 'stay' | 'flee';
+    t: number;
+    savior: DinoRig;
+    sx: number; sz: number;
+    caption: string;
+    fade: number;
+    hit: boolean; hit2: boolean; fell: boolean;
+    roarTick: number;
+    camPos: THREE.Vector3;
+    camLook: THREE.Vector3;
+  } = null;
 
   // 物種/詞條修正
   private mods = {
@@ -679,7 +705,9 @@ export class ArenaGame {
 
   private playerFalls() {
     if (this.ended) return;
-    if (this.cfg.packSize > 0) {
+    if (this.cfg.savior) {
+      this.startLastStand();
+    } else if (this.cfg.packSize > 0) {
       // 族人代死
       this.p.hp = 10;
       this.cb.onFx('sacrifice');
@@ -707,10 +735,11 @@ export class ArenaGame {
     this.finish('victory', 0);
   }
 
-  private finish(result: ArenaOutcome['result'], packLost: number) {
+  private finish(result: ArenaOutcome['result'], packLost: number, extra: Partial<ArenaOutcome> = {}) {
     this.ended = true;
-    this.endTimer = 1.8;
+    this.endTimer = extra.lastStand ? 0.5 : 1.8;
     this.outcome = {
+      ...extra,
       result,
       hpLost: Math.max(0, this.p.startHp - this.p.hp),
       finalHp: this.p.hp,
@@ -1288,6 +1317,32 @@ export class ArenaGame {
       }
     }
 
+    this.updateEffects(dt, realDt);
+
+    // 相機
+    const camTarget = new THREE.Vector3(p.x * 0.4, 7.4, PLAYER_Z + 5.8);
+    this.camera.position.lerp(camTarget, Math.min(1, realDt * 5));
+    const lookAt = new THREE.Vector3((p.x + e.x) * 0.3, 0.9, -2.6);
+    if (e.state === 'dead') {
+      // K.O. 特寫
+      const k = Math.min(1, e.t / 1.2);
+      this.camera.position.lerp(new THREE.Vector3(e.x + 3, 3.5, e.z + 7), k * 0.08);
+      lookAt.set(e.x, 1.2, e.z);
+    }
+    if (this.shakeAmt > 0) {
+      this.camera.position.add(new THREE.Vector3(rand(-1, 1), rand(-1, 1), 0).multiplyScalar(this.shakeAmt * 0.35));
+      this.shakeAmt = Math.max(0, this.shakeAmt - realDt * 3);
+    }
+    this.camera.lookAt(lookAt);
+    const baseFov = this.camera.aspect < 1 ? 70 : 50;
+    this.camera.fov = baseFov + this.fovPunch * 10;
+    this.fovPunch = Math.max(0, this.fovPunch - realDt * 3);
+    this.camera.updateProjectionMatrix();
+
+    this.updateTexts(realDt);
+  }
+
+  private updateEffects(dt: number, realDt: number) {
     // 粒子
     for (const pt of this.particles) {
       pt.life += dt;
@@ -1332,26 +1387,9 @@ export class ArenaGame {
       if (m.mesh.position.y < -2) this.resetMeteor(m.mesh);
     }
 
-    // 相機
-    const camTarget = new THREE.Vector3(p.x * 0.4, 7.4, PLAYER_Z + 5.8);
-    this.camera.position.lerp(camTarget, Math.min(1, realDt * 5));
-    const lookAt = new THREE.Vector3((p.x + e.x) * 0.3, 0.9, -2.6);
-    if (e.state === 'dead') {
-      // K.O. 特寫
-      const k = Math.min(1, e.t / 1.2);
-      this.camera.position.lerp(new THREE.Vector3(e.x + 3, 3.5, e.z + 7), k * 0.08);
-      lookAt.set(e.x, 1.2, e.z);
-    }
-    if (this.shakeAmt > 0) {
-      this.camera.position.add(new THREE.Vector3(rand(-1, 1), rand(-1, 1), 0).multiplyScalar(this.shakeAmt * 0.35));
-      this.shakeAmt = Math.max(0, this.shakeAmt - realDt * 3);
-    }
-    this.camera.lookAt(lookAt);
-    const baseFov = this.camera.aspect < 1 ? 70 : 50;
-    this.camera.fov = baseFov + this.fovPunch * 10;
-    this.fovPunch = Math.max(0, this.fovPunch - realDt * 3);
-    this.camera.updateProjectionMatrix();
+  }
 
+  private updateTexts(realDt: number) {
     // 飄字（DOM）
     const w = this.container.clientWidth;
     const h = this.container.clientHeight;
@@ -1370,6 +1408,321 @@ export class ArenaGame {
     this.texts = this.texts.filter(t => t.life < t.max);
   }
 
+  // ================= 擋刀過場動畫 =================
+
+  /** 由 UI 呼叫：玩家在「一同戰死／咬牙逃生」之間做出選擇 */
+  chooseLastStand(choice: LastStandChoice) {
+    const c = this.cine;
+    if (!c || c.phase !== 'choice') return;
+    c.phase = choice;
+    c.t = 0;
+    c.hit = false;
+    c.hit2 = false;
+    c.fell = false;
+  }
+
+  /** 測試／預覽用：直接進入擋刀動畫 */
+  debugLastStand() {
+    if (!this.cine && this.cfg.savior) {
+      this.p.hp = 0;
+      this.startLastStand();
+    }
+  }
+
+  private startLastStand() {
+    const sv = this.cfg.savior!;
+    this.ended = true;
+    this.endTimer = -1;
+    this.p.hp = 8;
+    this.p.flee = 0;
+    this.p.fleeHeld = false;
+    this.hideTelegraph();
+    this.banner = null;
+    for (const a of this.allies) this.scene.remove(a.rig.root);
+    this.allies = [];
+    this.e.x = this.p.x;
+    this.e.z = PLAYER_Z - 3.2;
+
+    const pm = SPECIES_MODELS[this.cfg.speciesId] || SPECIES_MODELS.trex;
+    const tint = new THREE.Color(pm.color).lerp(new THREE.Color(sv.kind === 'mate' ? 0xffd2c2 : 0xf4f0e0), 0.42);
+    const rig = buildDino(pm.kind, tint.getHex(), pm.accent);
+    rig.root.scale.setScalar(this.player.root.scale.x * (sv.kind === 'family' ? 0.92 : 1));
+    rig.root.position.set(this.p.x - 6, 0, PLAYER_Z + 0.6);
+    this.scene.add(rig.root);
+
+    this.cine = {
+      phase: 'block', t: 0, savior: rig,
+      sx: this.p.x - 6, sz: PLAYER_Z + 0.6,
+      caption: `${sv.name}衝了過來——`, fade: 0,
+      hit: false, hit2: false, fell: false, roarTick: 0,
+      camPos: this.camera.position.clone(),
+      camLook: new THREE.Vector3(this.p.x, 1, PLAYER_Z - 1),
+    };
+    this.cb.onFx('sacrifice');
+  }
+
+  private finishLastStand(choice: LastStandChoice) {
+    const sv = this.cfg.savior!;
+    if (choice === 'stay') {
+      this.p.hp = 0;
+      this.finish('death', 0, { savior: sv.kind, lastStand: 'stay' });
+    } else {
+      this.p.hp = 10;
+      this.finish('defeat', sv.kind === 'mate' ? 0 : 1, { savior: sv.kind, lastStand: 'flee' });
+    }
+  }
+
+  private updateCine(dt: number) {
+    const c = this.cine!;
+    const sv = this.cfg.savior!;
+    const p = this.p;
+    const e = this.e;
+    const pr = this.player.root;
+    const er = this.enemyRig.root;
+    const sr = c.savior.root;
+    const ease = (k: number) => (k <= 0 ? 0 : k >= 1 ? 1 : k * k * (3 - 2 * k));
+    const approach = (cur: number, to: number, rate: number) => cur + (to - cur) * Math.min(1, dt * rate);
+    const ph = c.phase;
+    c.t += dt;
+    const t = c.t;
+
+    // 預設姿勢
+    const camPos = new THREE.Vector3();
+    const camLook = new THREE.Vector3();
+    let camRate = 3;
+    const far = this.camera.aspect < 1 ? 1.45 : 1;
+    for (const m of this.player.materials) { m.transparent = false; m.opacity = 1; }
+    this.player.tail.forEach((tl, i) => { tl.rotation.y = Math.sin(this.time * 2 - i * 0.6) * 0.1; });
+    c.savior.tail.forEach((tl, i) => { tl.rotation.y = Math.sin(this.time * 3 - i * 0.6) * 0.18; });
+    this.enemyRig.tail.forEach((tl, i) => { tl.rotation.y = Math.sin(this.time * 4 - i * 0.6) * 0.18; });
+
+    const blockX = p.x;
+    const blockZ = PLAYER_Z - 1.2;
+
+    if (ph === 'block') {
+      // 同伴從側面衝進來，擋在你和敵人之間
+      const k = ease(t / 0.6);
+      c.sx = (p.x - 6) + (blockX - (p.x - 6)) * k;
+      c.sz = (PLAYER_Z + 0.6) + (blockZ - (PLAYER_Z + 0.6)) * k;
+      sr.position.set(c.sx, 0, c.sz);
+      sr.rotation.y = k < 1 ? Math.PI / 2 + (Math.PI / 2) * k : Math.PI;
+      this.animateLegs(c.savior, t * 26, k < 1 ? 0.9 : 0.15);
+      // 敵人：蓄力 → 撲擊
+      const atk = Math.min(1, Math.max(0, (t - 0.35) / 0.25));
+      er.position.set(e.x, 0, e.z + atk * 1.1);
+      this.enemyRig.head.rotation.x = t < 0.35 ? -0.4 : -0.4 + atk * 0.6;
+      this.enemyRig.jaw.rotation.x = t < 0.6 ? 0.7 : 0.25;
+      if (!c.hit && t >= 0.6) {
+        c.hit = true;
+        const hp = new THREE.Vector3(c.sx, 1.4, c.sz - 0.3);
+        this.sparks(hp, 40, 0xd63031);
+        this.sparks(hp, 14, 0xffffff);
+        this.ring(hp, 0xff5555, 6, 0.6);
+        this.flashRig(c.savior, 0xff2222);
+        this.shake(1.3);
+        this.fovPunch = 1;
+        c.caption = `${sv.name}替你擋下了致命的一擊！`;
+      }
+      if (c.hit) {
+        sr.rotation.z = Math.sin((t - 0.6) * 18) * 0.12 * Math.max(0, 1 - (t - 0.6));
+        c.savior.body.position.y = -0.12;
+        this.jawOpen(c.savior, 1);
+      }
+      // 玩家：被撞開、重傷低伏
+      p.z = PLAYER_Z + ease(t / 0.8) * 0.9;
+      pr.position.set(p.x, 0, p.z);
+      pr.rotation.y = Math.PI;
+      pr.rotation.z = approach(pr.rotation.z, 0.18, 4);
+      this.player.body.position.y = approach(this.player.body.position.y, -0.25, 4);
+      this.animateLegs(this.player, 0, 0);
+      camPos.set(p.x + 6.2 * far, 2.0, blockZ + 0.6);
+      camLook.set(p.x, 1.3, blockZ - 0.3);
+      camRate = 6;
+      if (t > 2.6) { c.phase = 'urge'; c.t = 0; }
+    } else if (ph === 'urge' || ph === 'choice') {
+      const u = ph === 'urge' ? t : 4.2 + t;
+      // 同伴死命頂住敵人
+      sr.position.set(blockX + Math.sin(this.time * 9) * 0.05, 0, blockZ + Math.sin(this.time * 3) * 0.08);
+      er.position.set(e.x + Math.sin(this.time * 11) * 0.05, 0, blockZ - 1.9 + Math.sin(this.time * 3) * 0.08);
+      this.enemyRig.jaw.rotation.x = 0.35 + Math.sin(this.time * 6) * 0.1;
+      this.enemyRig.head.rotation.x = 0.15;
+      c.savior.body.position.y = -0.12;
+      sr.rotation.z = Math.sin(this.time * 7) * 0.05;
+      // 1.6～3.0 秒：回頭吼「快走！」
+      const look = u > 1.6 && u < 3.2 ? ease(Math.min((u - 1.6) / 0.3, (3.2 - u) / 0.3)) : 0;
+      c.savior.head.rotation.y = look * 1.1;
+      c.savior.head.rotation.x = -look * 0.25;
+      c.savior.jaw.rotation.x = look > 0.5 ? 0.55 + Math.sin(this.time * 30) * 0.05 : 0.45;
+      if (look > 0.5 && c.roarTick <= 0) { this.ring(new THREE.Vector3(blockX, 0, blockZ), 0xffffff, 3, 0.5); c.roarTick = 0.6; }
+      c.roarTick -= dt;
+      // 玩家：拖著傷退後、不捨地回頭
+      const back = ease(Math.min(1, u / 1.6));
+      p.z = PLAYER_Z + 0.9 + back * 1.6;
+      pr.position.set(p.x + back * 0.8, 0, p.z);
+      pr.rotation.y = Math.PI - back * 2.3;
+      pr.rotation.z = 0.15 + Math.sin(this.time * 4) * 0.03;
+      this.player.body.position.y = -0.18 + Math.abs(Math.sin(u * 5)) * 0.05 * (1 - back);
+      this.animateLegs(this.player, u * 9, back < 1 ? 0.35 : 0.03);
+      this.player.head.rotation.y = approach(this.player.head.rotation.y, u > 0.8 ? 1.15 : 0, 3);
+      this.player.head.rotation.x = 0.15;
+      if (u < 1.6) c.caption = '你傷痕累累，不捨地回頭……';
+      else if (u < 3.2) c.caption = `${sv.name}：「快走！別管我！」`;
+      else if (ph === 'urge') c.caption = `${sv.name}痛苦地咬緊牙，堅決地要你離開。`;
+      else c.caption = '';
+      camPos.set(p.x + 3.2 * far, 2.4, p.z + 4.6 * far);
+      camLook.set(p.x + 0.3, 1.2, (p.z + blockZ) / 2 - 0.6);
+      camRate = 2.5;
+      if (ph === 'urge' && t > 4.2) { c.phase = 'choice'; c.t = 0; }
+    } else if (ph === 'stay') {
+      // 轉身回到牠身邊，並肩迎戰，一同倒下
+      const turn = ease(Math.min(1, t / 0.6));
+      const walk = ease(Math.min(1, Math.max(0, (t - 0.3) / 1.0)));
+      const fromZ = PLAYER_Z + 2.5;
+      p.z = fromZ + (blockZ - fromZ) * walk;
+      const px = p.x + 0.8 + (1.3 - 0.8) * walk;
+      pr.position.set(px, 0, p.z);
+      pr.rotation.y = (Math.PI - 2.3) + 2.3 * turn;
+      this.player.head.rotation.y = approach(this.player.head.rotation.y, 0, 4);
+      sr.position.set(blockX - 0.2 * walk, 0, blockZ);
+      c.savior.head.rotation.y = approach(c.savior.head.rotation.y, -0.5 * (1 - walk), 3);
+      if (!c.fell) this.animateLegs(this.player, t * 14, walk < 1 && walk > 0 ? 0.5 : 0.05);
+      // 1.3～2.0：一起怒吼
+      const roar = t > 1.3 && t < 2.1 ? 1 : 0;
+      if (roar) {
+        this.player.jaw.rotation.x = 0.7; c.savior.jaw.rotation.x = 0.7;
+        this.player.head.rotation.x = -0.3; c.savior.head.rotation.x = -0.3;
+        if (!c.hit) { c.hit = true; this.ring(new THREE.Vector3(blockX + 0.6, 0, blockZ), 0xffd23a, 7, 0.8); this.shake(0.6); }
+        c.caption = '你轉身回到牠身邊。要走，就一起走。';
+      }
+      // 敵人：高高揚起 → 重重砸下
+      const rear = t > 2.1 && t < 2.6 ? ease((t - 2.1) / 0.5) : t >= 2.6 ? Math.max(0, 1 - (t - 2.6) * 4) : 0;
+      er.position.set(e.x + 0.5, rear * 1.2, blockZ - 1.9);
+      this.enemyRig.head.rotation.x = -rear * 0.6;
+      this.enemyRig.jaw.rotation.x = 0.3 + rear * 0.5;
+      if (!c.hit2 && t >= 2.65) {
+        c.hit2 = true;
+        const at = new THREE.Vector3(blockX + 0.6, 1.0, blockZ);
+        this.sparks(at, 60, 0xd63031);
+        this.dust(new THREE.Vector3(blockX + 0.6, 0.1, blockZ), 30);
+        this.ring(at, 0xffffff, 10, 0.9);
+        this.flashRig(this.player, 0xff2222);
+        this.flashRig(c.savior, 0xff2222);
+        this.shake(1.8);
+        this.fovPunch = 1.2;
+        c.caption = '';
+      }
+      // 2.9 之後：慢慢倒下
+      const fall = ease(Math.max(0, (t - 2.9) / 1.4));
+      if (fall > 0) {
+        c.fell = true;
+        pr.rotation.z = fall * (Math.PI / 2);
+        sr.rotation.z = -fall * (Math.PI / 2);
+        pr.position.y = -fall * 0.15;
+        sr.position.y = -fall * 0.15;
+        this.player.jaw.rotation.x = 0.15; c.savior.jaw.rotation.x = 0.15;
+        this.player.head.rotation.x = 0.2; c.savior.head.rotation.x = 0.2;
+        this.animateLegs(this.player, 0, 0); this.animateLegs(c.savior, 0, 0);
+        c.caption = t < 4.6 ? '你們並肩倒下……' : '……再也沒有分開。';
+      }
+      // 相機：側面 → 慢慢升高俯瞰
+      const crane = ease(Math.max(0, (t - 3.0) / 3.2));
+      camPos.set(blockX + (3.4 - crane * 1.8) * far, 2.6 + crane * 6.5, blockZ + (5.2 - crane * 1.5) * far);
+      camLook.set(blockX + 0.6, 0.8 - crane * 0.3, blockZ - 0.9 * (1 - crane));
+      camRate = 2.5;
+      c.fade = Math.max(0, Math.min(1, (t - 5.0) / 1.6));
+      if (t > 6.8 && !this.outcome) this.finishLastStand('stay');
+    } else if (ph === 'flee') {
+      // 咬牙逃離，回頭仰天悲憤怒吼
+      const fromZ = PLAYER_Z + 2.5;
+      const run = ease(Math.max(0, Math.min(1, (t - 0.4) / 2.6)));
+      p.z = fromZ + run * 8;
+      const px = p.x + 0.8 + run * 1.6;
+      pr.position.set(px, 0, p.z);
+      this.player.head.rotation.y = approach(this.player.head.rotation.y, 0, 5);
+      if (t < 3.0) {
+        pr.rotation.y = approach(pr.rotation.y, 0.15, 6);
+        pr.rotation.z = Math.sin(t * 9) * 0.1;
+        this.player.body.position.y = -0.1 + Math.abs(Math.sin(t * 9)) * 0.12;
+        this.animateLegs(this.player, t * 20, 0.75);
+        this.player.head.rotation.x = 0.25;
+        this.player.jaw.rotation.x = 0.2;
+        c.caption = t < 1.2 ? '你咬緊牙關……' : '拖著傷痕累累的身體，頭也不回地逃離。';
+      } else {
+        // 停下、轉身、仰天怒吼
+        const turn = ease(Math.min(1, (t - 3.0) / 0.7));
+        pr.rotation.y = 0.15 + (Math.PI - 0.15) * turn;
+        pr.rotation.z = approach(pr.rotation.z, 0, 6);
+        this.animateLegs(this.player, 0, 0);
+        const up = ease(Math.max(0, Math.min(1, (t - 3.7) / 0.5)));
+        this.player.head.rotation.x = 0.25 - up * 1.25;
+        this.player.jaw.rotation.x = 0.2 + up * 0.75 + (up >= 1 ? Math.sin(this.time * 40) * 0.04 : 0);
+        this.player.body.position.y = -0.1 + up * 0.15;
+        if (up > 0.5 && t < 6.0) {
+          c.roarTick -= dt;
+          if (c.roarTick <= 0) {
+            c.roarTick = 0.45;
+            this.ring(new THREE.Vector3(px, 0, p.z), 0xffffff, 9, 0.9);
+            this.dust(new THREE.Vector3(px, 0.1, p.z), 10);
+            this.shake(0.9);
+            this.fovPunch = 0.8;
+          }
+          c.caption = t < 5.0 ? '啊——————！！' : '「我會活下去……替你活下去。」';
+        } else if (t >= 6.0) {
+          c.caption = '「我會活下去……替你活下去。」';
+          this.player.jaw.rotation.x = approach(this.player.jaw.rotation.x, 0.15, 3);
+          this.player.head.rotation.x = approach(this.player.head.rotation.x, 0.1, 2);
+        }
+      }
+      // 遠處：同伴被擊倒
+      if (!c.hit && t >= 1.5) {
+        c.hit = true;
+        const at = new THREE.Vector3(blockX, 1.2, blockZ);
+        this.sparks(at, 40, 0xd63031);
+        this.flashRig(c.savior, 0xff2222);
+        this.shake(0.5);
+      }
+      const sfall = ease(Math.max(0, (t - 1.6) / 1.2));
+      sr.position.set(blockX, -sfall * 0.15, blockZ);
+      sr.rotation.z = -sfall * (Math.PI / 2);
+      c.savior.head.rotation.y = approach(c.savior.head.rotation.y, 0, 3);
+      c.savior.jaw.rotation.x = sfall > 0 ? 0.15 : 0.45;
+      this.animateLegs(c.savior, 0, 0);
+      const atk = t > 1.2 && t < 1.6 ? ease((t - 1.2) / 0.3) : t >= 1.6 ? Math.max(0, 1 - (t - 1.6) * 2) : 0;
+      er.position.set(e.x, 0, blockZ - 1.9 + atk * 0.8);
+      this.enemyRig.head.rotation.x = -0.3 + atk * 0.5;
+      this.enemyRig.jaw.rotation.x = 0.5;
+      // 相機：跟著逃跑 → 低角度仰拍怒吼
+      if (t < 3.0) {
+        camPos.set(px + 2.4 * far, 2.3, p.z + 5.6 * far);
+        camLook.set(px - 0.4, 1.1, p.z - 3.0);
+        camRate = 3;
+      } else {
+        // 繞到正面、低角度仰拍
+        const k = ease(Math.min(1, (t - 3.0) / 1.2));
+        camPos.set(px + (2.4 + k * 1.0) * far, 2.3 - k * 0.8, p.z + (5.6 - k * 11.2) * far);
+        camLook.set(px, 1.1 + k * 1.5, p.z - 3.0 * (1 - k));
+        camRate = 2.2;
+      }
+      c.fade = Math.max(0, Math.min(1, (t - 6.8) / 0.9)) * 0.85;
+      if (t > 7.6 && !this.outcome) this.finishLastStand('flee');
+    }
+
+    // 相機（平滑、含震動）
+    c.camPos.lerp(camPos, Math.min(1, dt * camRate));
+    c.camLook.lerp(camLook, Math.min(1, dt * camRate));
+    this.camera.position.copy(c.camPos);
+    if (this.shakeAmt > 0) {
+      this.camera.position.add(new THREE.Vector3(rand(-1, 1), rand(-1, 1), 0).multiplyScalar(this.shakeAmt * 0.25));
+      this.shakeAmt = Math.max(0, this.shakeAmt - dt * 2.5);
+    }
+    this.camera.lookAt(c.camLook);
+    const baseFov = this.camera.aspect < 1 ? 62 : 45;
+    this.camera.fov = baseFov + this.fovPunch * 8;
+    this.fovPunch = Math.max(0, this.fovPunch - dt * 2.5);
+    this.camera.updateProjectionMatrix();
+    this.alertSprite.visible = false;
+  }
+
   // ================= 主迴圈 =================
 
   private update(realDt: number) {
@@ -1382,6 +1735,18 @@ export class ArenaGame {
       dt *= this.slowScale;
     }
     this.time += dt;
+
+    if (this.cine) {
+      this.updateCine(realDt);
+      this.updateEffects(realDt, realDt);
+      this.updateTexts(realDt);
+      if (this.endTimer > 0) {
+        this.endTimer -= realDt;
+        if (this.endTimer <= 0 && this.outcome) this.cb.onEnd(this.outcome);
+      }
+      this.emitHud();
+      return;
+    }
 
     if (!this.ended || this.e.state === 'dead') {
       this.updatePlayer(dt);
@@ -1402,7 +1767,13 @@ export class ArenaGame {
       if (this.endTimer <= 0 && this.outcome) this.cb.onEnd(this.outcome);
     }
 
+    this.emitHud();
+  }
+
+  private emitHud() {
+    const c = this.cine;
     this.cb.onHud({
+      cine: c ? { caption: c.caption, choice: c.phase === 'choice', fade: c.fade } : null,
       playerHp: this.p.hp,
       stamina: this.p.stamina,
       enemyHp: this.e.hp,

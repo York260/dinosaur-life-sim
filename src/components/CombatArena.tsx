@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { ArenaGame, ArenaConfig, ArenaHud, ArenaInput, ArenaFx } from '../combat/ArenaGame';
+import { ArenaGame, ArenaConfig, ArenaHud, ArenaInput, ArenaFx, LastStandChoice } from '../combat/ArenaGame';
 import { ArenaOutcome } from '../engine/types';
 import './CombatArena.css';
 
@@ -99,6 +99,10 @@ export default function CombatArena({ config, title, onFinish, onAutoResolve, on
         return;
       }
       if (stage !== 'fight') return;
+      if (gameRef.current && (ev.key === '1' || ev.key === '2')) {
+        gameRef.current.chooseLastStand(ev.key === '1' ? 'stay' : 'flee');
+        return;
+      }
       const input = KEYMAP[ev.key];
       if (!input) return;
       ev.preventDefault();
@@ -174,7 +178,18 @@ export default function CombatArena({ config, title, onFinish, onAutoResolve, on
     );
   }
 
-  const res = outcome ? RESULT_TEXT[outcome.result] : null;
+  const baseRes = outcome ? RESULT_TEXT[outcome.result] : null;
+  const who = config.savior?.name ?? '同伴';
+  const res = baseRes && outcome?.lastStand
+    ? outcome.lastStand === 'stay'
+      ? { ...baseRes, title: '並肩倒下', desc: `你選擇留下，與${who}一同戰死。` }
+      : { ...baseRes, title: '倖存', desc: `${who}用生命換來了你的生路。` }
+    : baseRes;
+  const cine = hud?.cine ?? null;
+  const choose = (c: LastStandChoice) => (ev: React.PointerEvent) => {
+    ev.preventDefault();
+    gameRef.current?.chooseLastStand(c);
+  };
   const hpMax = 100;
 
   return (
@@ -184,7 +199,22 @@ export default function CombatArena({ config, title, onFinish, onAutoResolve, on
         <div ref={overlayRef} className="arena-overlay" />
         {fx && <div key={fx.id} className={`arena-fx fx-${fx.kind}`} />}
 
-        {hud && (
+        {cine && (
+          <div className="arena-cine">
+            <div className="cine-bar top" />
+            <div className="cine-bar bottom" />
+            <div className="cine-fade" style={{ opacity: cine.fade }} />
+            {cine.caption && <div key={cine.caption} className="cine-caption">{cine.caption}</div>}
+            {cine.choice && (
+              <div className="cine-choice">
+                <button className="cine-btn stay" onPointerDown={choose('stay')}>一同戰死</button>
+                <button className="cine-btn flee" onPointerDown={choose('flee')}>咬牙逃生</button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {hud && !cine && (
           <div className="arena-hud">
             <div className="hud-enemy">
               <div className="hud-name">
@@ -230,7 +260,7 @@ export default function CombatArena({ config, title, onFinish, onAutoResolve, on
         )}
       </div>
 
-      {stage === 'fight' && (
+      {stage === 'fight' && !cine && (
         <div className="arena-touch">
           <button onPointerDown={touch('left', true)}>◀</button>
           <button onPointerDown={touch('bite', true)} className="t-bite">撕咬</button>

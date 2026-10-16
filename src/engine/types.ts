@@ -189,6 +189,10 @@ export interface ArenaOutcome {
   interrupts: number;
   timeSec: number;
   enemyName: string;
+  /** 誰在致命關頭替你擋刀 */
+  savior?: 'mate' | 'family' | 'pack';
+  /** 擋刀後的選擇：一同戰死 / 咬牙逃生 */
+  lastStand?: 'stay' | 'flee';
 }
 
 // ========== 年度結算 ==========
