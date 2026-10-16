@@ -131,7 +131,8 @@ export const ENEMIES: Record<string, EnemyTemplate> = {
 
 export function buildEnemyProfile(enemyId: string | undefined, threatDC: number): EnemyProfile {
   const t = ENEMIES[enemyId || 'rival'] || ENEMIES.rival;
-  const maxHp = Math.round((230 + threatDC * 15) * t.hpMult);
+  // 一般對手血量 +15%（獵物會補水，打贏的回報變大，所以對手也要更耐打）；頭目不變
+  const maxHp = Math.round((230 + threatDC * 15) * t.hpMult * (t.boss ? 1 : 1.15));
   const damage = Math.round((5 + threatDC * 0.9) * t.dmgMult);
   return { ...t, maxHp, damage };
 }

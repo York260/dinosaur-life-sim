@@ -73,8 +73,8 @@ export function applyConsumption(state: GameState): {
       hpPenalty += 10;
       warnings.push('脫水：水分歸零，HP -10，並陷入「虛弱」（全屬性 -5）！');
     }
-  } else if (newHunger >= 50 && newHydration >= 50) {
-    // 營養充足時自然癒合
+  } else if (newHunger >= 40 && newHydration >= 40) {
+    // 營養足夠時自然癒合
     hpRegen = 6;
   }
 

@@ -64,6 +64,11 @@ function foodMult(state: GameState, hunger: number): number {
   return Math.round(hunger * SEASONS[state.season].foodGainMult);
 }
 
+/** 獵物的血肉也含水分：打贏時補回約 7 成飽食量的水分，避免「狩獵 → 受傷 → 渴死」 */
+function preyWater(food: number): number {
+  return Math.round(food * 0.7);
+}
+
 function eff(state: GameState, key: keyof Stats) {
   return getEffectiveStat(state.stats[key], key, state.traits, state.hunger);
 }
@@ -98,7 +103,7 @@ export function resolveYear(state: GameState, arena?: ArenaOutcome): YearOutcome
       if (win) {
         const reward = combatOutcome === 'great_victory' ? 30 + Math.floor(Math.random() * 21) : 15 + Math.floor(Math.random() * 11);
         acc.hunger = foodMult(state, Math.max(r.hungerChange, reward));
-        acc.hydration = r.hydrationChange;
+        acc.hydration = Math.max(r.hydrationChange, preyWater(reward));
         applyEffects(acc, state, r);
         acc.narrative = `⚔️ 擊敗了${arena.enemyName}！${combatOutcome === 'great_victory' ? '（大勝：幾乎毫髮無傷）' : ''}\n${r.narrative}`;
         if (arena.perfectDodges >= 3 && !hasTrait(state.traits, 'battle_hardened')) {
@@ -141,6 +146,7 @@ export function resolveYear(state: GameState, arena?: ArenaOutcome): YearOutcome
       acc.hp = c.hpChange;
       acc.hunger = foodMult(state, c.hungerGain);
       if (win) {
+        acc.hydration = Math.max(r.hydrationChange, preyWater(c.hungerGain));
         applyEffects(acc, state, r);
         acc.narrative += `\n${r.narrative}`;
       } else {
@@ -164,7 +170,7 @@ export function resolveYear(state: GameState, arena?: ArenaOutcome): YearOutcome
         traitBonus: c.total - c.roll - statBonus - state.packSize,
         total: c.total, dc: threat, checkResult, narrative: acc.narrative,
         resourceCost: mainAction.resourceCost,
-        hpChange: acc.hp, hungerChange: acc.hunger, hydrationChange: 0, packChange: acc.pack,
+        hpChange: acc.hp, hungerChange: acc.hunger, hydrationChange: acc.hydration, packChange: acc.pack,
         isCombat: true, combatOutcome, combatPackBonus: state.packSize, statChanges: { ...acc.stats },
       };
     }
