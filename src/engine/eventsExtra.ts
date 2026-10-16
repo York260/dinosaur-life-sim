@@ -542,7 +542,7 @@ export const EXTRA_EVENTS: EventTemplate[] = [
         R('在這美好的季節裡，你找到了伴侶！', 0, 0, 0, { mateGain: true, traitRemove: 'grief' }),
         R('對方正忙著吃東西，沒空理你。'), { requires: { noMate: true, minYear: 13 } }),
       A('nest_bounty', '築一個舒適的大巢', '為下一代打算', 'int', 10, [8, 5],
-        R('豐饒的季節裡，巢中一口氣孵出了新生命！', 0, 0, 0, { packChange: 1 }),
+        R('豐饒的季節裡，巢中一口氣孵出了新生命！', 0, 0, 0, { packChange: 1, setFlags: ['newborn'] }),
         R('巢還沒蓋好就下雨了。'), { requires: { mate: true } }),
     ],
     subActions: [SUB_REST, SUB_STUDY],

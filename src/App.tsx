@@ -5,7 +5,7 @@ import {
 import { generateEvent } from './engine/events';
 import { applyConsumption, clampResource } from './engine/resources';
 import { getTraitById, progressTraitCures, WEAKNESS_TRAIT } from './engine/traits';
-import { tryPackGrowth, checkPackDesertion } from './engine/pack';
+import { tryPackGrowth, checkPackDesertion, FAMILY_FLAGS } from './engine/pack';
 import { rollSeason } from './engine/seasons';
 import { resolveYear } from './engine/resolve';
 import {
@@ -210,6 +210,8 @@ function gameReducer(state: GameState, action: GameActionType): GameState {
       for (const f of res.flagsSet ?? []) if (!flags[f]) flags[f] = state.year;
 
       const packSize = Math.max(0, state.packSize + res.packChange);
+      const newFamily = res.packChange > 0 && (res.flagsSet ?? []).some(f => FAMILY_FLAGS.includes(f)) ? res.packChange : 0;
+      const family = Math.min(packSize, (state.family ?? 0) + newFamily);
       const arena = res.mainBreakdown?.arena;
       const runStats = {
         ...state.runStats,
@@ -244,6 +246,7 @@ function gameReducer(state: GameState, action: GameActionType): GameState {
         hunger: clampResource(state.hunger + res.hungerChange),
         hydration: clampResource(state.hydration + res.hydrationChange),
         packSize,
+        family,
         hasMate: (state.hasMate && !res.mateLost) || !!res.mateGained,
         stats: resolvedStats,
         traits,
@@ -315,11 +318,14 @@ function gameReducer(state: GameState, action: GameActionType): GameState {
       // 族群：繁衍與離散
       const growth = tryPackGrowth(state);
       let packSize = state.packSize + growth.grew;
+      const family = Math.min(packSize, (state.family ?? 0) + growth.grew);
       if (growth.narrative) notes.push(`🥚 ${growth.narrative}`);
-      const desert = checkPackDesertion(packSize, newHunger);
+      const desert = checkPackDesertion(packSize, newHunger, family);
       if (desert.lost) {
         packSize -= desert.lost;
         notes.push(`😢 ${desert.narrative}`);
+      } else if (desert.narrative) {
+        notes.push(`🦕 ${desert.narrative}`);
       }
 
       const runStats = {
@@ -330,7 +336,7 @@ function gameReducer(state: GameState, action: GameActionType): GameState {
       };
       const chronicle = [...state.chronicle];
       if (growth.grew > 0) chronicle.push({ year: state.year, icon: '🐣', text: `巢中孵出了 ${growth.grew} 隻幼崽`, kind: 'pack' });
-      if (desert.lost > 0) chronicle.push({ year: state.year, icon: '🍂', text: '飢荒中，一名族人離開了', kind: 'danger' });
+      if (desert.lost > 0) chronicle.push({ year: state.year, icon: '🍂', text: '飢荒中，一名追隨者離開了', kind: 'danger' });
       for (const name of cure.cured) chronicle.push({ year: state.year, icon: '🌿', text: `擺脫了「${name}」`, kind: 'trait' });
 
       if (newHp <= 0) {
@@ -358,6 +364,7 @@ function gameReducer(state: GameState, action: GameActionType): GameState {
         hunger: newHunger,
         hydration: newHydration,
         packSize,
+        family,
         traits,
         season,
         runStats,

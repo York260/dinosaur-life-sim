@@ -257,6 +257,8 @@ export interface GameState {
 
   hasMate: boolean;
   packSize: number;
+  /** 族群中的「家人」（自己孵的、收養的蛋、手足），不會因為飢餓離開 */
+  family?: number;
 
   currentEvent: GameEvent | null;
   selectedMainAction: GameAction | null;

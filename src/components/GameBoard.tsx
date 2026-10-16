@@ -75,7 +75,7 @@ export default function GameBoard({
           <div className="card">
             <div className="pack-info">
               <span>{hasMate ? '💕 有伴侶' : '💔 單身'}</span>
-              <span>🦕 族群 {packSize}</span>
+              <span>🦕 族群 {packSize}{(state.family ?? 0) > 0 && `（家人 ${Math.min(state.family ?? 0, packSize)}）`}</span>
               <span title="末日審判時可用來排除錯誤答案">📖 知識 {state.knowledge}</span>
             </div>
             {packSize > 0 && (

@@ -38,10 +38,24 @@ export function tryPackGrowth(state: GameState): {
   };
 }
 
-/** 飢荒時族群離散 */
-export function checkPackDesertion(packSize: number, hunger: number): { lost: number; narrative: string } {
-  if (packSize > 0 && hunger < 25) {
-    return { lost: 1, narrative: '食物匱乏，一名族群成員離開了你，去別處尋找生路。' };
+/** 會讓族群多出「家人」的旗標：自己孵的幼崽、收養的蛋、重逢的手足 */
+export const FAMILY_FLAGS = ['newborn', 'egg_hatched', 'sibling_joined'];
+
+/**
+ * 飢荒時族群離散：只有外來的追隨者會離開，家人再餓也不走。
+ * 飽食偏低時先提醒一年，讓玩家有機會補救。
+ */
+export function checkPackDesertion(packSize: number, hunger: number, family = 0): { lost: number; narrative: string } {
+  const outsiders = packSize - Math.min(family, packSize);
+  if (outsiders <= 0) {
+    if (packSize > 0 && hunger < 25) return { lost: 0, narrative: '食物很少，但家人們緊緊靠在你身邊，沒有一個離開。' };
+    return { lost: 0, narrative: '' };
+  }
+  if (hunger < 25) {
+    return { lost: 1, narrative: '食物匱乏，一名外來的追隨者離開了你，去別處尋找生路。（家人不會離開）' };
+  }
+  if (hunger < 40) {
+    return { lost: 0, narrative: '追隨者們開始餓肚子了。飽食再低於 25，外來的成員可能會離開。' };
   }
   return { lost: 0, narrative: '' };
 }

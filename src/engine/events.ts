@@ -1224,7 +1224,7 @@ const ADULT_EVENTS: EventTemplate[] = [
         successResult: {
           narrative: '你建造了一個溫暖安全的巢穴！',
           hpChange: 5, hungerChange: 10, hydrationChange: 10,
-          packChange: 1,
+          packChange: 1, setFlags: ['newborn'],
         },
         failureResult: {
           narrative: '巢穴的位置選得不好，被洪水沖毀了。',
