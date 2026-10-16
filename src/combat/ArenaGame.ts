@@ -707,12 +707,6 @@ export class ArenaGame {
     if (this.ended) return;
     if (this.cfg.savior) {
       this.startLastStand();
-    } else if (this.cfg.packSize > 0) {
-      // 族人代死
-      this.p.hp = 10;
-      this.cb.onFx('sacrifice');
-      this.showBanner('族人挺身而出，替你擋下了致命一擊！', 2);
-      this.finish('defeat', 1);
     } else {
       this.showBanner('你倒下了……', 2);
       this.player.root.rotation.z = Math.PI / 2;

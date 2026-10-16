@@ -128,6 +128,7 @@ export function resolveYear(state: GameState, arena?: ArenaOutcome): YearOutcome
         if (arena.result === 'defeat') {
           acc.pack -= arena.packLost;
           if (arena.savior === 'mate') acc.mateLost = true;
+          if (arena.savior) acc.flags.push('saved_once');
           acc.narrative = arena.lastStand === 'flee'
             ? `💔 敗給了${arena.enemyName}。${saviorName(state, arena)}替你擋下了致命一擊，用生命換來你的生路……\n${r.narrative}`
             : `💀 敗給了${arena.enemyName}。一名族人挺身而出，替你擋下了致命一擊……\n${r.narrative}`;
@@ -164,8 +165,9 @@ export function resolveYear(state: GameState, arena?: ArenaOutcome): YearOutcome
         applyEffects(acc, state, r);
       }
       if (c.outcome === 'catastrophic_defeat') {
-        if (state.packSize + acc.pack > 0) {
+        if (state.packSize + acc.pack > 0 && !state.flags.saved_once) {
           acc.pack -= 1;
+          acc.flags.push('saved_once');
           acc.hp = -(state.hp - 10);
           acc.narrative = '慘敗！致命一擊落下的瞬間，一名族人撲了上來，替你承受了一切……';
         } else {

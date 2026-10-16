@@ -16,7 +16,9 @@ export function buildArenaConfig(
   // 致命關頭擋刀的人：伴侶 > 家人 > 族人（末日審判只看隨行族人）
   const inTrial = opts.packSize !== undefined;
   const family = Math.min(state.family ?? 0, packSize);
-  const savior: ArenaConfig['savior'] = !inTrial && state.hasMate
+  // 每局最多被救一次
+  const savior: ArenaConfig['savior'] = state.flags.saved_once ? undefined
+    : !inTrial && state.hasMate
     ? { kind: 'mate', name: `「${state.mateName ?? '伴侶'}」` }
     : packSize > 0
       ? (!inTrial && family > 0 ? { kind: 'family', name: '你的家人' } : { kind: 'pack', name: '一名族人' })
